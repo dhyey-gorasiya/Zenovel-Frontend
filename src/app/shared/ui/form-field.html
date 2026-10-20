@@ -1,0 +1,10 @@
+<label class="zn-label" [attr.for]="for() || null">
+  {{ label() }}@if (required()) {<span class="text-danger" aria-hidden="true"> *</span>}
+</label>
+<ng-content />
+@if (control()?.invalid && (control()?.touched || control()?.dirty)) {
+  <span class="text-xs text-danger" role="alert">{{ message() }}</span>
+} @else if (hint()) {
+  <span class="text-xs text-ink-soft">{{ hint() }}</span>
+}
+

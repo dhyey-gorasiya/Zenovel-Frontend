@@ -1,0 +1,41 @@
+@let c = content();
+@for (s of settings.reportSections(); track s.key) {
+  @if (s.enabled) {
+    <section class="mb-4 break-inside-avoid">
+      <h3 class="mb-1.5 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink-soft">
+        {{ s.label }}
+        @if (showProvisional()) { <span class="zn-badge zn-badge-warn normal-case tracking-normal">Provisional</span> }
+      </h3>
+      @switch (s.key) {
+        @case ('findings') {
+          @if (c.findings.length) {
+            <table class="zn-table rounded-lg border border-line">
+              <thead><tr><th>Category</th><th>Description</th><th>Grade</th></tr></thead>
+              <tbody>@for (f of c.findings; track f.id) { <tr><td>{{ f.category || '—' }}</td><td>{{ f.description }}</td><td>{{ f.grade }}</td></tr> }</tbody>
+            </table>
+          } @else { <p class="text-sm text-ink-soft">None recorded.</p> }
+        }
+        @case ('deviations') {
+          @if (c.deviations.length) {
+            <table class="zn-table rounded-lg border border-line">
+              <thead><tr><th>Issue / deviation</th><th>Reference</th></tr></thead>
+              <tbody>@for (d of c.deviations; track d.id) { <tr><td>{{ d.description }}</td><td>{{ d.reference || '—' }}</td></tr> }</tbody>
+            </table>
+          } @else { <p class="text-sm text-ink-soft">None recorded.</p> }
+        }
+        @case ('capa') {
+          @if (c.capa.length) {
+            <table class="zn-table rounded-lg border border-line">
+              <thead><tr><th>Action</th><th>Responsible person</th><th>Target date</th><th>Status</th></tr></thead>
+              <tbody>@for (x of c.capa; track x.id) { <tr><td>{{ x.action }}</td><td>{{ x.responsiblePerson }}</td><td>{{ x.targetDate ? (x.targetDate | date: 'dd MMM yyyy') : '—' }}</td><td>{{ x.status }}</td></tr> }</tbody>
+            </table>
+          } @else { <p class="text-sm text-ink-soft">None recorded.</p> }
+        }
+        @default {
+          <p class="whitespace-pre-line text-sm">{{ text(s.key) || '—' }}</p>
+        }
+      }
+    </section>
+  }
+}
+

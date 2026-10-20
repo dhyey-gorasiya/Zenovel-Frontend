@@ -1,0 +1,21 @@
+@if (entries().length) {
+  <ul class="space-y-2.5">
+    @for (e of entries(); track e.id) {
+      <li class="flex gap-3 rounded-lg border border-line p-3 text-sm">
+        <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-mist text-accent">
+          <svg [lucideIcon]="icon(e.action)" [size]="14" />
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold text-ink">{{ e.action }}</p>
+          <p class="text-xs text-ink-soft">{{ e.byName }} · {{ e.role }} · {{ e.at | date: 'dd MMM yyyy, HH:mm' }}</p>
+          @if (e.comment) {
+            <p class="mt-1 whitespace-pre-line text-ink-soft">{{ e.comment }}</p>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+} @else {
+  <p class="py-3 text-sm text-ink-soft">{{ emptyText() }}</p>
+}
+

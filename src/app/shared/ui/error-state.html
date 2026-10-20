@@ -1,0 +1,9 @@
+<div class="zn-surface flex flex-col items-center gap-2 px-4 py-12 text-center" role="alert">
+  <span class="flex h-11 w-11 items-center justify-center rounded-full bg-danger-soft text-danger"><svg lucideIcon="circle-alert" [size]="20" /></span>
+  <p class="font-semibold text-ink">{{ title() }}</p>
+  <p class="max-w-md text-sm text-ink-soft">{{ message() }}</p>
+  @if (backLink()) {
+    <a class="zn-btn zn-btn-ghost mt-2" [routerLink]="backLink()"><svg lucideIcon="arrow-left" [size]="16" /> {{ backLabel() }}</a>
+  }
+</div>
+

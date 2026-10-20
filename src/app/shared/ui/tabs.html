@@ -1,0 +1,11 @@
+<div class="mb-4 flex gap-5 overflow-x-auto border-b border-line" role="tablist">
+  @for (t of tabs(); track t.key) {
+    <button type="button" role="tab" class="zn-tab" [class.active]="active() === t.key" [attr.aria-selected]="active() === t.key" (click)="active.set(t.key)">
+      {{ t.label }}
+      @if (t.count !== undefined) {
+        <span class="ml-1 rounded bg-mist px-1.5 py-0.5 text-[0.7rem] text-ink-soft">{{ t.count }}</span>
+      }
+    </button>
+  }
+</div>
+

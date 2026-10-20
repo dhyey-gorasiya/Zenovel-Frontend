@@ -1,0 +1,88 @@
+<div class="flex min-h-dvh flex-col bg-mist lg:flex-row">
+  <section class="relative hidden flex-col justify-between overflow-hidden bg-[#0b3b37] p-10 text-white lg:flex lg:w-[42%]">
+    <div class="flex items-center gap-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10"><svg lucideIcon="stethoscope" [size]="20" /></div>
+      <div>
+        <p class="zn-brand text-2xl leading-none">Zenovel</p>
+        <p class="text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-white/70">AI-Powered Clinical Trial Monitoring</p>
+      </div>
+    </div>
+    <div class="max-w-md space-y-5">
+      <h1 class="zn-brand text-4xl leading-tight">Monitoring plans, delegation and visit reports — in one workspace.</h1>
+      <ul class="space-y-3 text-sm text-white/80">
+        <li class="flex gap-3"><svg lucideIcon="clipboard-list" [size]="18" class="mt-0.5 shrink-0" /> Prepare monitoring plans with PM, HOD and sponsor review.</li>
+        <li class="flex gap-3"><svg lucideIcon="graduation-cap" [size]="18" class="mt-0.5 shrink-0" /> Delegate open-label and blinded monitor duties with acknowledgements.</li>
+        <li class="flex gap-3"><svg lucideIcon="user-check" [size]="18" class="mt-0.5 shrink-0" /> Assign visits and track monitoring reports end to end.</li>
+      </ul>
+    </div>
+    <p class="text-xs text-white/60">Frontend prototype · all data is fictional and stored only in this browser.</p>
+  </section>
+
+  <section class="flex flex-1 items-center justify-center p-4 sm:p-8">
+    <div class="w-full max-w-md space-y-5">
+      <div class="flex items-center gap-2.5 lg:hidden">
+        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-white"><svg lucideIcon="stethoscope" [size]="18" /></div>
+        <p class="zn-brand text-xl">Zenovel</p>
+      </div>
+
+      <div class="zn-surface p-6 shadow-sm">
+        <h2 class="zn-page-title">Sign in</h2>
+        <p class="mt-1 text-sm text-ink-soft">Use one of the demo accounts below.</p>
+
+        <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <app-form-field label="Email" [control]="form.controls.email" [required]="true" for="login-email">
+            <input id="login-email" class="zn-input" type="email" formControlName="email" autocomplete="username" />
+          </app-form-field>
+          <app-form-field label="Password" [control]="form.controls.password" [required]="true" for="login-password">
+            <div class="relative">
+              <input id="login-password" class="zn-input pr-10" [type]="showPassword() ? 'text' : 'password'" formControlName="password" autocomplete="current-password" />
+              <button type="button" class="absolute right-1 top-1/2 -translate-y-1/2 zn-icon-btn h-8 w-8" (click)="showPassword.set(!showPassword())"
+                [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                <svg [lucideIcon]="showPassword() ? 'eye-off' : 'eye'" [size]="16" />
+              </button>
+            </div>
+          </app-form-field>
+          @if (error()) {
+            <div class="zn-notice zn-notice-danger" role="alert"><svg lucideIcon="circle-alert" [size]="16" class="mt-0.5 shrink-0" /> {{ error() }}</div>
+          }
+          <button type="submit" class="zn-btn zn-btn-primary w-full" [disabled]="loading()">
+            @if (loading()) {
+              <svg lucideIcon="loader-circle" [size]="16" class="animate-spin" /> Signing in…
+            } @else {
+              <svg lucideIcon="lock" [size]="16" /> Sign in
+            }
+          </button>
+        </form>
+      </div>
+
+      <div class="zn-surface overflow-hidden">
+        <div class="zn-card-head">
+          <p class="text-sm font-semibold">Demo accounts</p>
+          <span class="text-xs text-ink-soft">Password for all: <code class="rounded bg-mist px-1.5 py-0.5 font-semibold text-ink">{{ demoPassword() }}</code></span>
+        </div>
+        <div class="max-h-72 divide-y divide-line overflow-auto">
+          @for (group of accountsByRole(); track group.role) {
+            <div class="px-4 py-2.5">
+              <p class="mb-1.5 text-[0.68rem] font-bold uppercase tracking-wide text-ink-soft">{{ group.role }}</p>
+              <div class="flex flex-wrap gap-1.5">
+                @for (a of group.accounts; track a.email) {
+                  <button type="button" class="rounded-md border border-line px-2 py-1 text-left text-xs hover:border-accent hover:bg-accent-soft"
+                    [title]="a.email" (click)="fill(a.email, a.password)">
+                    <span class="font-semibold">{{ a.name }}</span>
+                    @if (a.role === 'Sponsor') {
+                      <span class="text-ink-soft"> · {{ a.organization }}</span>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+        <p class="border-t border-line bg-warn-soft px-4 py-2 text-[0.72rem] text-warn">
+          Prototype credentials stored in the browser. Not secure and not a substitute for real authentication or server-side authorization.
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+

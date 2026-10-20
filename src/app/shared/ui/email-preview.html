@@ -1,0 +1,36 @@
+@if (email.pending(); as p) {
+  <app-modal title="Email preview" subtitle="Simulated email — will not be delivered" width="min(42rem, 100%)" (closed)="cancel()">
+    <div class="space-y-3 text-sm">
+      <div class="zn-notice zn-notice-info">
+        <svg lucideIcon="info" [size]="16" class="mt-0.5 shrink-0" />
+        <span>This prototype never sends real emails. "Send" records the message in the simulated outbox and creates in-app notifications.</span>
+      </div>
+      <dl class="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-1.5 rounded-lg border border-line p-3">
+        <dt class="zn-label">To</dt><dd>{{ p.draft.to.join(', ') }}</dd>
+        @if (p.draft.cc.length) {
+          <dt class="zn-label">CC</dt><dd>{{ p.draft.cc.join(', ') }}</dd>
+        }
+        <dt class="zn-label">Subject</dt><dd class="font-semibold">{{ p.draft.subject }}</dd>
+        <dt class="zn-label">Project</dt><dd>{{ projectLabel() }}</dd>
+        <dt class="zn-label">Record</dt><dd>{{ p.draft.entityType }} {{ p.draft.entityId }}</dd>
+      </dl>
+      <pre class="whitespace-pre-wrap rounded-lg bg-sunken p-3 font-sans text-sm leading-relaxed">{{ p.draft.body }}</pre>
+      @if (result()) {
+        <div class="zn-notice zn-notice-ok"><svg lucideIcon="mail-check" [size]="16" class="mt-0.5 shrink-0" /> {{ result() }}</div>
+      }
+    </div>
+    <ng-container modal-actions>
+      <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()" [disabled]="sending()">Cancel</button>
+      <button type="button" class="zn-btn zn-btn-primary" (click)="send()" [disabled]="sending()">
+        @if (result()) {
+          <svg lucideIcon="check" [size]="16" /> Sent (simulated)
+        } @else if (sending()) {
+          <svg lucideIcon="loader-circle" [size]="16" class="animate-spin" /> Sending…
+        } @else {
+          <svg lucideIcon="send" [size]="16" /> Send (simulated)
+        }
+      </button>
+    </ng-container>
+  </app-modal>
+}
+

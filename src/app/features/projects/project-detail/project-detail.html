@@ -1,0 +1,130 @@
+@if (project(); as p) {
+  <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start">
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="zn-page-title">{{ p.name }}</h1>
+        <app-status-badge [status]="p.status" />
+      </div>
+      <p class="mt-1 text-sm text-ink-soft">{{ p.id }} · {{ p.protocolNo }} · {{ p.studyType }} ({{ p.blinding }}) · {{ p.sponsor.name }}</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a routerLink="/projects" class="zn-btn zn-btn-ghost"><svg lucideIcon="arrow-left" [size]="16" /> Projects</a>
+      @if (roles.can('project.manage')) {
+        <a [routerLink]="['/projects', p.id, 'edit']" class="zn-btn zn-btn-ghost"><svg lucideIcon="pencil" [size]="16" /> Edit</a>
+        <button type="button" class="zn-btn zn-btn-danger" (click)="remove()"><svg lucideIcon="trash" [size]="16" /> Delete</button>
+      }
+    </div>
+  </div>
+
+  <app-tabs [tabs]="tabs()" [(active)]="activeTab" />
+
+  @switch (activeTab()) {
+    @case ('overview') {
+      <div class="grid gap-4 xl:grid-cols-3">
+        <section class="zn-surface p-4 xl:col-span-2">
+          <h2 class="zn-section-title mb-3">Protocol</h2>
+          <dl class="zn-kv">
+            <div class="col-span-full"><dt>Project Title / Protocol Title</dt><dd>{{ p.protocolTitle }}</dd></div>
+            <div><dt>Project ID</dt><dd>{{ p.id }}</dd></div>
+            <div><dt>Zenovel Project No.</dt><dd>{{ p.zenovelProjectNo }}</dd></div>
+            <div><dt>CRO Project No. / Protocol No.</dt><dd>{{ p.protocolNo }}</dd></div>
+            <div><dt>Sponsor Project No.</dt><dd>{{ p.sponsorProjectNo || '—' }}</dd></div>
+            <div><dt>Study Type</dt><dd>{{ p.studyType }}</dd></div>
+            <div><dt>Type of Study</dt><dd>{{ p.blinding }}</dd></div>
+            <div><dt>Start Date</dt><dd>{{ p.startDate | date: 'dd MMM yyyy' }}</dd></div>
+            <div><dt>End Date</dt><dd>{{ p.endDate | date: 'dd MMM yyyy' }}</dd></div>
+            <div><dt>Project Manager</dt><dd>{{ users.name(p.projectManagerId) }}</dd></div>
+            <div><dt>Back-up PM</dt><dd>{{ users.name(p.backupProjectManagerId) }}</dd></div>
+            <div><dt>Last Updated</dt><dd>{{ p.updatedAt | date: 'dd MMM yyyy, HH:mm' }}</dd></div>
+            <div>
+              <dt>Protocol Document</dt>
+              <dd>
+                @if (p.protocolDocument; as f) {
+                  <span class="inline-flex items-center gap-1"><svg lucideIcon="paperclip" [size]="14" /> {{ f.name }} ({{ f.size / 1024 | number: '1.0-0' }} KB)</span>
+                } @else {
+                  —
+                }
+              </dd>
+            </div>
+          </dl>
+          @if (p.description || p.notes) {
+            <div class="mt-4 grid gap-3 border-t border-line pt-3 text-sm md:grid-cols-2">
+              <div><p class="zn-label">Description</p><p class="mt-1 whitespace-pre-line">{{ p.description || '—' }}</p></div>
+              <div><p class="zn-label">Notes</p><p class="mt-1 whitespace-pre-line">{{ p.notes || '—' }}</p></div>
+            </div>
+          }
+        </section>
+
+        <section class="zn-surface p-4">
+          <h2 class="zn-section-title mb-3">Scope of work</h2>
+          <div class="space-y-3 text-sm">
+            <div>
+              <p class="flex items-center gap-2 font-semibold"><svg [lucideIcon]="p.scope.monitoring ? 'circle-check' : 'circle-x'" [size]="16" [class]="p.scope.monitoring ? 'text-ok' : 'text-ink-soft'" /> Monitoring</p>
+              @if (p.scope.monitoring) {
+                <p class="ml-6 text-ink-soft">{{ p.scope.monitoringDetails || 'No details' }}</p>
+                <ul class="ml-6 mt-1 list-disc pl-4 text-ink-soft">
+                  @for (v of p.scope.visits; track $index) {
+                    <li>{{ v.visitType }} ({{ v.days }} day{{ v.days === 1 ? '' : 's' }})</li>
+                  }
+                </ul>
+              }
+            </div>
+            <div>
+              <p class="flex items-center gap-2 font-semibold"><svg [lucideIcon]="p.scope.audit ? 'circle-check' : 'circle-x'" [size]="16" [class]="p.scope.audit ? 'text-ok' : 'text-ink-soft'" /> Audit</p>
+              @if (p.scope.audit) {
+                <p class="ml-6 text-ink-soft">{{ p.scope.auditDetails || 'No details' }}@if (p.scope.auditDays) { · {{ p.scope.auditDays }} day(s)}@if (p.scope.auditors) { with {{ p.scope.auditors }} auditor(s)}</p>
+              }
+            </div>
+          </div>
+        </section>
+
+        @for (party of [{ t: 'Sponsor details', d: p.sponsor }, { t: 'CRO details', d: p.cro }]; track party.t) {
+          <section class="zn-surface p-4">
+            <h2 class="zn-section-title mb-3">{{ party.t }}</h2>
+            <dl class="zn-kv">
+              <div><dt>Name</dt><dd>{{ party.d.name }}</dd></div>
+              <div><dt>Contact</dt><dd>{{ party.d.contactPerson || '—' }}</dd></div>
+              <div><dt>Email</dt><dd>{{ party.d.email || '—' }}</dd></div>
+              <div><dt>Phone</dt><dd>{{ party.d.phone || '—' }}</dd></div>
+              <div class="col-span-full"><dt>Address</dt><dd>{{ party.d.address || '—' }}</dd></div>
+            </dl>
+          </section>
+        }
+      </div>
+    }
+    @case ('plans') {
+      <div class="mb-3 flex justify-end">
+        @if (roles.can('plan.manage')) {
+          <a routerLink="/plans/new" [queryParams]="{ projectId: p.id }" class="zn-btn zn-btn-primary zn-btn-sm"><svg lucideIcon="plus" [size]="14" /> New Monitoring Plan</a>
+        }
+      </div>
+      <app-data-table [columns]="planColumns" [rows]="relatedPlans()" emptyMessage="No monitoring plans for this project." />
+    }
+    @case ('delegations') {
+      <div class="mb-3 flex justify-end">
+        @if (roles.can('delegation.manage')) {
+          <a routerLink="/delegations/new" [queryParams]="{ projectId: p.id }" class="zn-btn zn-btn-primary zn-btn-sm"><svg lucideIcon="plus" [size]="14" /> New Delegation Record</a>
+        }
+      </div>
+      <app-data-table [columns]="delegationColumns" [rows]="relatedDelegations()" emptyMessage="No delegation records for this project." />
+    }
+    @case ('assignments') {
+      <div class="mb-3 flex justify-end">
+        @if (roles.can('assignment.manage')) {
+          <a routerLink="/assignments/new" [queryParams]="{ projectId: p.id }" class="zn-btn zn-btn-primary zn-btn-sm"><svg lucideIcon="plus" [size]="14" /> Assign Monitor</a>
+        }
+      </div>
+      <app-data-table [columns]="assignmentColumns" [rows]="relatedAssignments()" emptyMessage="No monitor assignments for this project." />
+    }
+    @case ('reports') {
+      <app-data-table [columns]="reportColumns" [rows]="relatedReports()" emptyMessage="No monitoring reports for this project." />
+    }
+    @case ('activity') {
+      <section class="zn-surface p-4">
+        <app-activity-timeline [items]="history()" emptyText="No activity recorded for this project." />
+      </section>
+    }
+  }
+} @else {
+  <app-error-state title="Project not found" message="This project does not exist, was deleted, or is outside your access." backLink="/projects" backLabel="Back to projects" />
+}

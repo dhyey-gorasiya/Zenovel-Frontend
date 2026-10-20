@@ -1,0 +1,21 @@
+<div class="zn-table-pager">
+  <label class="flex items-center gap-2 justify-self-start font-semibold">
+    <span class="hidden sm:inline">Rows</span>
+    <select class="zn-input w-auto py-1" [value]="size()" aria-label="Rows per page" (change)="onSize($any($event.target).value)">
+      @for (n of sizes(); track n) {
+        <option [value]="n" [selected]="n === size()">{{ n }}</option>
+      }
+    </select>
+  </label>
+  <p class="m-0 justify-self-center text-center font-semibold text-ink">{{ start() }}–{{ end() }} of {{ total() }}</p>
+  <div class="flex items-center justify-end gap-1.5 justify-self-end">
+    <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" [disabled]="page() === 0" (click)="page.set(page() - 1)" aria-label="Previous page">
+      <svg lucideIcon="chevron-left" [size]="14" /><span class="hidden sm:inline">Prev</span>
+    </button>
+    <span class="text-xs">{{ page() + 1 }} / {{ pageCount() }}</span>
+    <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" [disabled]="page() + 1 >= pageCount()" (click)="page.set(page() + 1)" aria-label="Next page">
+      <span class="hidden sm:inline">Next</span><svg lucideIcon="chevron-right" [size]="14" />
+    </button>
+  </div>
+</div>
+

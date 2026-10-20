@@ -1,0 +1,89 @@
+<div class="zn-table-card zn-rise">
+  <div class="zn-table-scroll">
+    <table class="zn-table">
+      <thead>
+        <tr>
+          @for (c of columns(); track c.key) {
+          <th [class.cursor-pointer]="c.sortable !== false" [class.select-none]="c.sortable !== false"
+            [attr.aria-sort]="ariaSort(c.key)" (click)="c.sortable !== false && sort(c.key)">
+            {{ c.label }}{{ sortKey() === c.key ? (asc() ? ' ↑' : ' ↓') : '' }}
+          </th>
+          }
+          @if (actions().length) {
+          <th>
+            <div class="flex items-center justify-between gap-2">
+              <span>Actions</span>
+              <button type="button" class="zn-table-search-btn" [class.active]="filterRow() || hasColumnFilters()"
+                [attr.aria-pressed]="filterRow()" aria-label="Toggle column search" title="Search by column"
+                (click)="toggleFilterRow(); $event.stopPropagation()">
+                <svg lucideIcon="search" [size]="15" />
+              </button>
+            </div>
+          </th>
+          }
+        </tr>
+        @if (filterRow()) {
+        <tr class="zn-table-filter-row">
+          @for (c of columns(); track c.key) {
+          <th>
+            <input class="zn-table-filter-input" type="search" [placeholder]="'Search ' + c.label"
+              [attr.aria-label]="'Search ' + c.label" [value]="columnFilters()[c.key] ?? ''"
+              (click)="$event.stopPropagation()" (input)="onColumnFilter(c.key, $any($event.target).value)">
+          </th>
+          }
+          @if (actions().length) {
+          <th>
+            @if (hasColumnFilters()) {
+            <button type="button" class="zn-btn-link" (click)="clearColumnFilters()">Clear</button>
+            }
+          </th>
+          }
+        </tr>
+        }
+      </thead>
+      <tbody>
+        @for (row of pageRows(); track trackRow(row)) {
+        <tr>
+          @for (c of columns(); track c.key) {
+          <td [class]="tdClass(row, c)">
+            @switch (c.type) {
+            @case ('badge') {
+            <span [class]="badgeClass(row, c)">{{ cellValue(row, c) }}</span>
+            }
+            @case ('link') {
+            @if (c.link?.(row); as href) {
+            <a [routerLink]="href" class="font-semibold text-accent hover:underline">{{ cellValue(row, c) }}</a>
+            } @else {
+            {{ cellValue(row, c) }}
+            }
+            }
+            @default {
+            {{ cellValue(row, c) }}
+            }
+            }
+          </td>
+          }
+          @if (actions().length) {
+          <td class="whitespace-nowrap">
+            <div class="flex items-center gap-0.5">
+              @for (a of visibleActions(row); track a.label) {
+              <button type="button" class="zn-action-btn" [class.zn-action-danger]="actionIcon(a) === 'trash'"
+                [class]="a.class ?? ''" [attr.aria-label]="a.label + ' ' + trackRow(row)" [title]="a.label" (click)="a.onClick(row)">
+                <svg [lucideIcon]="actionIcon(a)" [size]="17" />
+              </button>
+              }
+            </div>
+          </td>
+          }
+        </tr>
+        } @empty {
+        <tr>
+          <td [attr.colspan]="colSpan()" class="p-8 text-center text-ink-soft">{{ emptyMessage() }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-pagination [total]="filtered().length" [(page)]="pg" [(size)]="size" [sizes]="pageSizeOptions()" />
+</div>

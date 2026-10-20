@@ -1,0 +1,99 @@
+@if (report(); as r) {
+  <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start">
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="zn-page-title">Monitoring Report {{ r.id }}</h1>
+        <app-status-badge [status]="r.status" />
+        <span class="zn-badge zn-badge-muted">v{{ r.version }}</span>
+      </div>
+      <p class="mt-1 text-sm text-ink-soft">
+        <a [routerLink]="['/projects', r.projectId]" class="text-accent hover:underline">{{ projects.name(r.projectId) }}</a> · {{ r.visitType }} on {{ r.visitDate | date: 'dd MMM yyyy' }} · {{ users.name(r.monitorId) }}
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a routerLink="/reports" class="zn-btn zn-btn-ghost"><svg lucideIcon="arrow-left" [size]="16" /> Reports</a>
+      <a [routerLink]="['/reports', r.id, 'print']" class="zn-btn zn-btn-ghost"><svg lucideIcon="printer" [size]="16" /> Print view</a>
+      @if (actions().edit) {
+        <a [routerLink]="['/reports', r.id, 'edit']" class="zn-btn zn-btn-ghost"><svg lucideIcon="pencil" [size]="16" /> Edit draft</a>
+      }
+      @if (actions().delete) {
+        <button type="button" class="zn-btn zn-btn-danger" (click)="remove(r)"><svg lucideIcon="trash" [size]="16" /> Delete</button>
+      }
+    </div>
+  </div>
+
+  <div class="zn-notice zn-notice-warn mb-4"><svg lucideIcon="triangle-alert" [size]="16" class="mt-0.5 shrink-0" /> Provisional report structure and review workflow, pending client confirmation. Content is fictional demo data, not clinical results.</div>
+
+  <div class="grid gap-4 xl:grid-cols-[1fr_24rem]">
+    <div class="space-y-4">
+      <section class="zn-surface p-4">
+        <h2 class="zn-section-title mb-3">Visit details</h2>
+        <dl class="zn-kv">
+          <div><dt>Project</dt><dd>{{ project()?.name }}</dd></div>
+          <div><dt>Protocol No.</dt><dd>{{ project()?.protocolNo }}</dd></div>
+          <div class="col-span-full"><dt>Protocol Title</dt><dd>{{ project()?.protocolTitle }}</dd></div>
+          <div><dt>Linked plan</dt><dd>@if (r.planId) { <a [routerLink]="['/plans', r.planId]" class="text-accent hover:underline">{{ plans.label(r.planId) }}</a> } @else { — }</dd></div>
+          <div><dt>Linked assignment</dt><dd>@if (r.assignmentId) { <a [routerLink]="['/assignments', r.assignmentId]" class="text-accent hover:underline">{{ r.assignmentId }}</a> } @else { — }</dd></div>
+          <div><dt>Visit type</dt><dd>{{ r.visitType }}</dd></div>
+          <div><dt>Visit date</dt><dd>{{ r.visitDate | date: 'dd MMM yyyy' }}</dd></div>
+          <div><dt>Monitor</dt><dd>{{ users.name(r.monitorId) }} · {{ users.email(r.monitorId) }}</dd></div>
+          <div><dt>Last updated</dt><dd>{{ r.updatedAt | date: 'dd MMM yyyy, HH:mm' }}</dd></div>
+        </dl>
+      </section>
+      <section class="zn-surface p-4">
+        <app-report-content [content]="r" />
+      </section>
+    </div>
+
+    <div class="space-y-4">
+      <section class="zn-surface">
+        <div class="zn-card-head"><h2 class="zn-section-title">Review</h2></div>
+        <div class="space-y-3 p-4">
+          <div class="flex flex-wrap gap-2">
+            @if (actions().submit) {
+              <button type="button" class="zn-btn zn-btn-primary zn-btn-sm" (click)="submit(r)"><svg lucideIcon="send" [size]="14" /> Submit for review</button>
+            }
+            @if (actions().review) {
+              <button type="button" class="zn-btn zn-btn-ok zn-btn-sm" (click)="approve(r)"><svg lucideIcon="badge-check" [size]="14" /> Approve report</button>
+              <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="requestChanges(r)"><svg lucideIcon="message-square" [size]="14" /> Request changes</button>
+            }
+            <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="comment(r)"><svg lucideIcon="message-square" [size]="14" /> Add comment</button>
+          </div>
+          @if (!actions().submit && !actions().review) {
+            <p class="text-xs text-ink-soft">{{ hint() }}</p>
+          }
+          <p class="zn-label">Reviewer comments</p>
+          <app-approval-history [entries]="reviews()" emptyText="No reviewer comments yet." />
+        </div>
+      </section>
+
+      <section class="zn-surface">
+        <div class="zn-card-head"><h2 class="zn-section-title">Version history</h2></div>
+        <ul class="divide-y divide-line">
+          <li class="flex items-center justify-between px-4 py-2.5 text-sm">
+            <span><span class="font-semibold">v{{ r.version }}</span> · current</span>
+            <app-status-badge [status]="r.status" />
+          </li>
+          @for (v of versionsDesc(); track $index) {
+            <li class="flex items-center justify-between gap-2 px-4 py-2.5 text-sm">
+              <span class="min-w-0"><span class="font-semibold">v{{ v.version }}</span> · {{ v.note }}<br /><span class="text-xs text-ink-soft">{{ v.byName }} · {{ v.at | date: 'dd MMM yyyy, HH:mm' }}</span></span>
+              <button type="button" class="zn-btn-link" (click)="viewing.set(v)">View</button>
+            </li>
+          } @empty {
+            <li class="px-4 py-3 text-sm text-ink-soft">No submitted versions yet.</li>
+          }
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  @if (viewing(); as v) {
+    <app-modal [title]="'Version ' + v.version + ' snapshot'" [subtitle]="v.note + ' · ' + v.byName" width="min(48rem, 100%)" (closed)="viewing.set(null)">
+      <app-report-content [content]="v.content" [showProvisional]="false" />
+      <ng-container modal-actions><button type="button" class="zn-btn zn-btn-ghost" (click)="viewing.set(null)">Close</button></ng-container>
+    </app-modal>
+  }
+} @else {
+  <app-error-state title="Report not found" message="This report does not exist, was deleted, or is outside your access." backLink="/reports" backLabel="Back to reports" />
+}
+

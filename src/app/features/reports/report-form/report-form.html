@@ -1,0 +1,157 @@
+@if (blocked()) {
+  <app-error-state title="Report not available" [message]="blocked()" backLink="/reports" backLabel="Back to reports" />
+} @else {
+  <app-page-header [title]="existing() ? 'Edit Report ' + existing()!.id : 'Create Monitoring Report'" description="Provisional report template — fields and workflow are pending client confirmation.">
+    <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()"><svg lucideIcon="arrow-left" [size]="16" /> Back</button>
+  </app-page-header>
+
+  <div class="zn-notice zn-notice-warn mb-3">
+    <svg lucideIcon="triangle-alert" [size]="16" class="mt-0.5 shrink-0" />
+    <span>The Monitoring Report specification has not been confirmed. Sections marked <strong>Provisional</strong> are configurable in Settings. Do not enter real patient or clinical data in this prototype.</span>
+  </div>
+  @if (restored()) {
+    <div class="zn-notice zn-notice-info mb-3">
+      <svg lucideIcon="info" [size]="16" class="mt-0.5 shrink-0" />
+      <span class="flex-1">Unsaved changes from your previous visit were restored.</span>
+      <button type="button" class="zn-btn-link" (click)="discardDraft()">Discard</button>
+    </div>
+  }
+
+  @if (!existing() && !assignmentOptions().length) {
+    <section class="zn-surface">
+      <app-empty-state title="No assignments available for a new report" message="Reports are prepared from a monitoring visit assigned to you. Ask your Project Manager to assign a visit, or open an assignment that has no report yet." icon="file-text">
+        <a routerLink="/assignments" class="zn-btn zn-btn-ghost">View my assignments</a>
+      </app-empty-state>
+    </section>
+  } @else {
+    <form [formGroup]="form" novalidate (ngSubmit)="submit()" class="grid gap-4 xl:grid-cols-[1fr_22rem]">
+      <div class="space-y-4">
+        <section class="zn-surface p-4 md:p-5">
+          <h2 class="zn-section-title mb-3">Visit &amp; project details</h2>
+          <div class="grid gap-3 md:grid-cols-2">
+            <app-form-field class="md:col-span-2" label="Linked Monitor Assignment" [control]="form.controls.assignmentId" [required]="!existing() || !!existing()!.assignmentId"
+              hint="You can only report on visits assigned to you.">
+              <app-searchable-select formControlName="assignmentId" [options]="assignmentOptions()" placeholder="Select assignment" [allowEmpty]="false" />
+            </app-form-field>
+            <app-form-field label="Visit type" [control]="form.controls.visitType" [required]="true">
+              <input class="zn-input" formControlName="visitType" aria-label="Visit type" />
+            </app-form-field>
+            <app-form-field label="Visit date" [control]="form.controls.visitDate" [required]="true">
+              <app-date-picker formControlName="visitDate" ariaLabel="Visit date" />
+            </app-form-field>
+            <app-form-field class="md:col-span-2" label="Linked Monitoring Plan" [control]="form.controls.planId" hint="Prefilled from the assignment">
+              <app-searchable-select formControlName="planId" [options]="planOptions()" placeholder="None" />
+            </app-form-field>
+          </div>
+          @if (project(); as p) {
+            <dl class="zn-kv mt-4 rounded-lg bg-sunken p-3">
+              <div><dt>Project</dt><dd>{{ p.name }} ({{ p.id }})</dd></div>
+              <div><dt>Protocol No.</dt><dd>{{ p.protocolNo }}</dd></div>
+              <div class="col-span-full"><dt>Protocol Title</dt><dd>{{ p.protocolTitle }}</dd></div>
+              <div><dt>Sponsor</dt><dd>{{ p.sponsor.name }}</dd></div>
+              <div><dt>Study</dt><dd>{{ p.studyType }} · {{ p.blinding }}</dd></div>
+              <div><dt>Monitor</dt><dd>{{ users.name(assignment()?.monitorId ?? existing()?.monitorId) }} · {{ users.email(assignment()?.monitorId ?? existing()?.monitorId) }}</dd></div>
+            </dl>
+          }
+        </section>
+
+        @for (key of ['visitSummary', 'observations']; track key) {
+          @if (enabled($any(key))) {
+            <section class="zn-surface zn-provisional p-4 md:p-5">
+              <div class="mb-2 flex items-center gap-2"><h2 class="zn-section-title">{{ label($any(key)) }}</h2><span class="zn-badge zn-badge-warn">Provisional</span></div>
+              <app-form-field [label]="label($any(key))" [control]="form.get(key)" [required]="required($any(key))">
+                <textarea class="zn-input" rows="4" [formControlName]="key" [attr.aria-label]="label($any(key))"></textarea>
+              </app-form-field>
+            </section>
+          }
+        }
+
+        @if (enabled('findings')) {
+          <section class="zn-surface zn-provisional p-4 md:p-5" formArrayName="findings">
+            <div class="mb-2 flex items-center gap-2">
+              <h2 class="zn-section-title">{{ label('findings') }}@if (required('findings')) {<span class="text-danger"> *</span>}</h2><span class="zn-badge zn-badge-warn">Provisional</span>
+              <span class="flex-1"></span>
+              <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="addFinding()"><svg lucideIcon="plus" [size]="14" /> Add finding</button>
+            </div>
+            @for (g of findings.controls; track g; let i = $index) {
+              <div class="mb-2 grid gap-2 md:grid-cols-[10rem_1fr_9rem_auto]" [formGroupName]="i">
+                <input class="zn-input" formControlName="category" placeholder="Category" [attr.aria-label]="'Finding ' + (i + 1) + ' category'" />
+                <input class="zn-input" formControlName="description" placeholder="Description" [attr.aria-label]="'Finding ' + (i + 1) + ' description'" />
+                <select class="zn-input" formControlName="grade" [attr.aria-label]="'Finding ' + (i + 1) + ' grade'">
+                  @for (gr of grades(); track gr) { <option [value]="gr">{{ gr }}</option> }
+                </select>
+                <button type="button" class="zn-action-btn zn-action-danger" (click)="remove(findings, i)" [attr.aria-label]="'Remove finding ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
+                @if (g.invalid && g.touched) { <p class="text-xs text-danger md:col-span-4">Description and grade are required.</p> }
+              </div>
+            } @empty { <p class="text-sm text-ink-soft">No findings recorded.</p> }
+          </section>
+        }
+
+        @if (enabled('deviations')) {
+          <section class="zn-surface zn-provisional p-4 md:p-5" formArrayName="deviations">
+            <div class="mb-2 flex items-center gap-2">
+              <h2 class="zn-section-title">{{ label('deviations') }}@if (required('deviations')) {<span class="text-danger"> *</span>}</h2><span class="zn-badge zn-badge-warn">Provisional</span>
+              <span class="flex-1"></span>
+              <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="addDeviation()"><svg lucideIcon="plus" [size]="14" /> Add issue</button>
+            </div>
+            @for (g of deviations.controls; track g; let i = $index) {
+              <div class="mb-2 grid gap-2 md:grid-cols-[1fr_14rem_auto]" [formGroupName]="i">
+                <input class="zn-input" formControlName="description" placeholder="Issue / deviation" [attr.aria-label]="'Issue ' + (i + 1) + ' description'" />
+                <input class="zn-input" formControlName="reference" placeholder="Reference" [attr.aria-label]="'Issue ' + (i + 1) + ' reference'" />
+                <button type="button" class="zn-action-btn zn-action-danger" (click)="remove(deviations, i)" [attr.aria-label]="'Remove issue ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
+              </div>
+            } @empty { <p class="text-sm text-ink-soft">No issues or deviations recorded.</p> }
+          </section>
+        }
+
+        @if (enabled('capa')) {
+          <section class="zn-surface zn-provisional p-4 md:p-5" formArrayName="capa">
+            <div class="mb-2 flex items-center gap-2">
+              <h2 class="zn-section-title">{{ label('capa') }}@if (required('capa')) {<span class="text-danger"> *</span>}</h2><span class="zn-badge zn-badge-warn">Provisional</span>
+              <span class="flex-1"></span>
+              <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="addCapa()"><svg lucideIcon="plus" [size]="14" /> Add action</button>
+            </div>
+            @for (g of capa.controls; track g; let i = $index) {
+              <div class="mb-2 grid gap-2 md:grid-cols-[1fr_12rem_10rem_7rem_auto]" [formGroupName]="i">
+                <input class="zn-input" formControlName="action" placeholder="Corrective / preventive action" [attr.aria-label]="'Action ' + (i + 1)" />
+                <input class="zn-input" formControlName="responsiblePerson" placeholder="Responsible person" [attr.aria-label]="'Action ' + (i + 1) + ' responsible person'" />
+                <app-date-picker formControlName="targetDate" [ariaLabel]="'Action ' + (i + 1) + ' target date'" />
+                <select class="zn-input" formControlName="status" [attr.aria-label]="'Action ' + (i + 1) + ' status'"><option value="Open">Open</option><option value="Closed">Closed</option></select>
+                <button type="button" class="zn-action-btn zn-action-danger" (click)="remove(capa, i)" [attr.aria-label]="'Remove action ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
+                @if (g.invalid && g.touched) { <p class="text-xs text-danger md:col-span-5">Action, responsible person and target date are required.</p> }
+              </div>
+            } @empty { <p class="text-sm text-ink-soft">No CAPA items recorded.</p> }
+          </section>
+        }
+
+        @for (key of ['supportingNotes', 'conclusion']; track key) {
+          @if (enabled($any(key))) {
+            <section class="zn-surface zn-provisional p-4 md:p-5">
+              <div class="mb-2 flex items-center gap-2"><h2 class="zn-section-title">{{ label($any(key)) }}</h2><span class="zn-badge zn-badge-warn">Provisional</span></div>
+              <app-form-field [label]="label($any(key))" [control]="form.get(key)" [required]="required($any(key))">
+                <textarea class="zn-input" rows="3" [formControlName]="key" [attr.aria-label]="label($any(key))"></textarea>
+              </app-form-field>
+            </section>
+          }
+        }
+      </div>
+
+      <aside class="space-y-4">
+        <section class="zn-surface p-4">
+          <h2 class="zn-section-title mb-2">Submit</h2>
+          <p class="text-sm text-ink-soft">Save as draft to continue later, or submit for Project Manager review (provisional workflow).</p>
+          <div class="mt-3 flex flex-col gap-2">
+            <button type="button" class="zn-btn zn-btn-ghost" (click)="saveDraft()"><svg lucideIcon="save" [size]="16" /> Save draft</button>
+            <button type="submit" class="zn-btn zn-btn-primary"><svg lucideIcon="send" [size]="16" /> Submit for review</button>
+          </div>
+        </section>
+        @if (existing(); as e) {
+          <section class="zn-surface p-4">
+            <h2 class="zn-section-title mb-2">Reviewer comments</h2>
+            <app-approval-history [entries]="e.reviews" emptyText="No reviewer comments yet." />
+          </section>
+        }
+      </aside>
+    </form>
+  }
+}

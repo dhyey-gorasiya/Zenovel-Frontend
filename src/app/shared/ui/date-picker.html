@@ -1,0 +1,3 @@
+<input class="zn-input" [type]="type()" [id]="inputId()" [value]="value()" [min]="min() || null" [max]="max() || null"
+  [disabled]="disabled()" [attr.aria-label]="ariaLabel() || null" (input)="onInput($any($event.target).value)" (blur)="onTouched()" />
+

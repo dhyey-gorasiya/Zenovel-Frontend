@@ -1,0 +1,98 @@
+<app-page-header title="Notifications"
+  description="In-app notifications for your account and the simulated email outbox.">
+  @if (tab() === 'inbox' && notifications.unreadCount()) {
+  <button type="button" class="zn-btn zn-btn-ghost" (click)="notifications.markAllRead()"><svg lucideIcon="check-check"
+      [size]="16" /> Mark all as read</button>
+  }
+</app-page-header>
+
+<app-tabs
+  [tabs]="[{ key: 'inbox', label: 'Notifications', count: notifications.unreadCount() }, { key: 'outbox', label: 'Simulated email outbox', count: email.outbox().length }]"
+  [(active)]="tab" />
+
+@if (tab() === 'inbox') {
+<div class="mb-3 flex gap-2">
+  @for (f of ['all', 'unread', 'read']; track f) {
+  <button type="button" class="zn-btn zn-btn-sm" [class]="filter() === f ? 'zn-btn-primary' : 'zn-btn-ghost'"
+    (click)="filter.set(f); page.set(0)">{{ f | titlecase }}</button>
+  }
+</div>
+<div class="zn-table-card">
+  <ul class="divide-y divide-line">
+    @for (n of pageItems(); track n.id) {
+    <li class="flex items-start gap-3 px-4 py-3" [class.bg-accent-soft]="!n.read">
+      <span class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-paper text-accent"><svg
+          lucideIcon="bell" [size]="15" /></span>
+      <button type="button" class="min-w-0 flex-1 text-left" (click)="open(n)">
+        <span class="block text-sm" [class]="n.read ? 'text-ink-soft' : 'font-semibold text-ink'">{{ n.title }}</span>
+        <span class="block text-sm text-ink-soft">{{ n.message }}</span>
+        <time class="block text-xs text-ink-soft">{{ n.createdAt | date: 'dd MMM yyyy, HH:mm' }}</time>
+      </button>
+      <div class="flex shrink-0 gap-1">
+        @if (!n.read) {
+        <button type="button" class="zn-action-btn" title="Mark as read" aria-label="Mark as read"
+          (click)="notifications.markRead(n)"><svg lucideIcon="check" [size]="16" /></button>
+        }
+        <button type="button" class="zn-action-btn zn-action-danger" title="Dismiss" aria-label="Dismiss notification"
+          (click)="notifications.remove(n.id)"><svg lucideIcon="trash" [size]="16" /></button>
+      </div>
+    </li>
+    } @empty {
+    <li><app-empty-state title="No notifications" message="Notifications appear when workflow actions involve you."
+        icon="bell" /></li>
+    }
+  </ul>
+  <app-pagination [total]="filtered().length" [(page)]="page" [(size)]="size" />
+</div>
+} @else {
+<div class="zn-notice zn-notice-info mb-3"><svg lucideIcon="info" [size]="16" class="mt-0.5 shrink-0" /> These emails
+  were simulated. No email was delivered to any recipient.</div>
+<div class="zn-table-card">
+  <ul class="divide-y divide-line">
+    @for (e of email.outbox(); track e.id) {
+    <li>
+      <button type="button" class="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-mist"
+        (click)="viewing.set(e)">
+        <span class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mist text-accent"><svg
+            lucideIcon="mail" [size]="15" /></span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-semibold">{{ e.subject }}</span>
+          <span class="block truncate text-xs text-ink-soft">To {{ e.to.join(', ') }} · from {{ e.sentByName }} · {{
+            e.entityType }} {{ e.entityId }}</span>
+        </span>
+        <time class="shrink-0 text-xs text-ink-soft">{{ e.sentAt | date: 'dd MMM, HH:mm' }}</time>
+      </button>
+    </li>
+    } @empty {
+    <li><app-empty-state title="Outbox is empty" message="Simulated emails you send or receive appear here."
+        icon="mail" /></li>
+    }
+  </ul>
+</div>
+}
+
+@if (viewing(); as e) {
+<app-modal [title]="e.subject" subtitle="Simulated email — not delivered" width="min(40rem, 100%)"
+  (closed)="viewing.set(null)">
+  <dl class="mb-3 grid grid-cols-[5rem_1fr] gap-1 text-sm">
+    <dt class="zn-label">From</dt>
+    <dd>{{ e.sentByName }}</dd>
+    <dt class="zn-label">To</dt>
+    <dd>{{ e.to.join(', ') }}</dd>
+    @if (e.cc.length) {
+    <dt class="zn-label">CC</dt>
+    <dd>{{ e.cc.join(', ') }}</dd>
+    }
+    <dt class="zn-label">Project</dt>
+    <dd>{{ e.projectId ? projects.name(e.projectId) : '—' }}</dd>
+    <dt class="zn-label">Sent</dt>
+    <dd>{{ e.sentAt | date: 'dd MMM yyyy, HH:mm' }}</dd>
+  </dl>
+  <pre class="whitespace-pre-wrap rounded-lg bg-sunken p-3 font-sans text-sm">{{ e.body }}</pre>
+  <ng-container modal-actions>
+    <button type="button" class="zn-btn zn-btn-ghost" (click)="viewing.set(null)">Close</button>
+    <button type="button" class="zn-btn zn-btn-primary" (click)="openRecord(e)"><svg lucideIcon="external-link"
+        [size]="16" /> Open record</button>
+  </ng-container>
+</app-modal>
+}

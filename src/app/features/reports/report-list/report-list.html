@@ -1,0 +1,8 @@
+<app-page-header title="Monitoring Reports" description="Provisional monitoring visit reports — structure pending client confirmation.">
+  @if (roles.can('report.prepare')) {
+    <a routerLink="/reports/new" class="zn-btn zn-btn-primary"><svg lucideIcon="plus" [size]="16" /> Create Monitoring Report</a>
+  }
+</app-page-header>
+<app-filter-bar [filters]="filters()" [(search)]="search" [(values)]="filterValues" placeholder="Search report ID, project, protocol, monitor…" />
+<app-data-table [columns]="columns" [rows]="rows()" [actions]="actions" emptyMessage="No reports match your filters." initialSortKey="updatedAt" />
+

@@ -1,0 +1,61 @@
+@if (dialogs.active(); as d) {
+  @switch (d.kind) {
+    @case ('confirm') {
+      <app-modal [title]="d.options.title" (closed)="cancel()">
+        <div class="space-y-3 text-sm" role="alertdialog">
+          <p class="text-ink">{{ d.options.message }}</p>
+          @if (d.options.details?.length) {
+            <ul class="zn-notice zn-notice-danger block list-disc space-y-0.5 pl-8">
+              @for (x of d.options.details; track x) {
+                <li>{{ x }}</li>
+              }
+            </ul>
+          }
+        </div>
+        <ng-container modal-actions>
+          <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()">Cancel</button>
+          <button type="button" class="zn-btn" [class]="d.options.tone === 'danger' ? 'zn-btn-danger' : 'zn-btn-primary'" (click)="resolveConfirm(true)">
+            {{ d.options.confirmText ?? 'Confirm' }}
+          </button>
+        </ng-container>
+      </app-modal>
+    }
+    @case ('prompt') {
+      <app-modal [title]="d.options.title" (closed)="cancel()">
+        <div class="space-y-3 text-sm">
+          @if (d.options.message) {
+            <p>{{ d.options.message }}</p>
+          }
+          <label class="flex flex-col gap-1">
+            <span class="zn-label">{{ d.options.label }}@if (d.options.required) {<span class="text-danger"> *</span>}</span>
+            <textarea class="zn-input" rows="4" [(ngModel)]="text"></textarea>
+          </label>
+          @if (d.options.required && touched() && !text.trim()) {
+            <p class="text-xs text-danger">This field is required.</p>
+          }
+        </div>
+        <ng-container modal-actions>
+          <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()">Cancel</button>
+          <button type="button" class="zn-btn" [class]="d.options.tone === 'danger' ? 'zn-btn-danger' : 'zn-btn-primary'" (click)="resolvePrompt(!!d.options.required)">
+            {{ d.options.confirmText ?? 'Submit' }}
+          </button>
+        </ng-container>
+      </app-modal>
+    }
+    @case ('sign') {
+      <app-modal [title]="d.options.title" subtitle="Signature simulation — prototype only" (closed)="cancel()">
+        <app-signature-pad #pad [expectedName]="d.options.signerName" [statement]="d.options.statement" />
+        @if (touched() && !pad.valid()) {
+          <p class="mt-2 text-xs text-danger">Type your name exactly as shown and tick the attestation.</p>
+        }
+        <ng-container modal-actions>
+          <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()">Cancel</button>
+          <button type="button" class="zn-btn zn-btn-primary" (click)="resolveSign()">
+            <svg lucideIcon="signature" [size]="16" /> {{ d.options.confirmText ?? 'Sign (simulated)' }}
+          </button>
+        </ng-container>
+      </app-modal>
+    }
+  }
+}
+

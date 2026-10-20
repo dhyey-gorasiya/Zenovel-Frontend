@@ -1,0 +1,12 @@
+<div class="pointer-events-none fixed bottom-4 right-4 z-[70] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2" aria-live="polite" role="status">
+  @for (t of toasts.toasts(); track t.id) {
+    <div class="zn-notice zn-rise pointer-events-auto bg-paper shadow-lg" [class]="tones[t.kind]">
+      <svg [lucideIcon]="icons[t.kind]" [size]="16" class="mt-0.5 shrink-0" />
+      <span class="flex-1">{{ t.message }}</span>
+      <button type="button" class="-mr-1 opacity-70 hover:opacity-100" aria-label="Dismiss" (click)="toasts.dismiss(t.id)">
+        <svg lucideIcon="x" [size]="14" />
+      </button>
+    </div>
+  }
+</div>
+

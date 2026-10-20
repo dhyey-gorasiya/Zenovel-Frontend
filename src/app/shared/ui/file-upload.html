@@ -1,0 +1,25 @@
+@if (value(); as f) {
+  <div class="flex items-center gap-3 rounded-lg border border-line bg-sunken px-3 py-2 text-sm">
+    <svg lucideIcon="paperclip" [size]="16" class="shrink-0 text-accent" />
+    <div class="min-w-0 flex-1">
+      <p class="truncate font-medium">{{ f.name }}</p>
+      <p class="text-xs text-ink-soft">{{ f.size / 1024 | number: '1.0-0' }} KB · added {{ f.uploadedAt.slice(0, 10) }} · metadata only</p>
+    </div>
+    @if (!disabled()) {
+      <button type="button" class="zn-btn-link zn-btn-link-danger" (click)="clear()">Remove</button>
+    }
+  </div>
+} @else {
+  <label class="flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed border-line px-4 py-5 text-center text-sm transition-colors hover:border-accent hover:bg-mist"
+    [class.border-accent]="dragging()" [class.opacity-50]="disabled()"
+    (dragover)="$event.preventDefault(); dragging.set(true)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
+    <svg lucideIcon="upload" [size]="20" class="text-accent" />
+    <span class="font-medium">{{ label() }}</span>
+    <span class="text-xs text-ink-soft">Drag & drop or click to browse · {{ accept() || 'any file' }} · max {{ maxMb() }} MB</span>
+    <input type="file" class="sr-only" [accept]="accept()" [disabled]="disabled()" (change)="onPick($event)" />
+  </label>
+}
+@if (error()) {
+  <p class="mt-1 text-xs text-danger" role="alert">{{ error() }}</p>
+}
+

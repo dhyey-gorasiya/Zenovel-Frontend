@@ -1,0 +1,32 @@
+<button type="button" class="zn-input flex items-center justify-between gap-2 text-left" [id]="inputId()" [disabled]="disabled()"
+  role="combobox" [attr.aria-expanded]="open()" [attr.aria-controls]="listId" (click)="toggle()" (keydown.escape)="open.set(false)" (blur)="onTouched()">
+  <span class="truncate" [class.text-ink-soft]="!selected()">{{ selected()?.label ?? placeholder() }}</span>
+  <svg lucideIcon="chevron-down" [size]="16" class="shrink-0 text-ink-soft" />
+</button>
+@if (open()) {
+  <div class="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-line bg-paper shadow-lg zn-fade-in">
+    <div class="border-b border-line p-1.5">
+      <input class="zn-input py-1.5 text-sm" placeholder="Search…" [value]="query()" (input)="query.set($any($event.target).value)"
+        (keydown.escape)="open.set(false)" (keydown.enter)="$event.preventDefault(); pickFirst()" aria-label="Filter options" #search />
+    </div>
+    <ul class="max-h-60 overflow-auto py-1" role="listbox" [id]="listId">
+      @if (allowEmpty()) {
+        <li><button type="button" class="w-full px-3 py-1.5 text-left text-sm text-ink-soft hover:bg-mist" (click)="pick(null)">{{ placeholder() }}</button></li>
+      }
+      @for (o of filtered(); track o.value) {
+        <li role="option" [attr.aria-selected]="o.value === value()">
+          <button type="button" class="flex w-full flex-col px-3 py-1.5 text-left text-sm hover:bg-mist disabled:opacity-40"
+            [class.bg-accent-soft]="o.value === value()" [disabled]="o.disabled" (click)="pick(o)">
+            <span>{{ o.label }}</span>
+            @if (o.hint) {
+              <span class="text-xs text-ink-soft">{{ o.hint }}</span>
+            }
+          </button>
+        </li>
+      } @empty {
+        <li class="px-3 py-2 text-sm text-ink-soft">No matches.</li>
+      }
+    </ul>
+  </div>
+}
+

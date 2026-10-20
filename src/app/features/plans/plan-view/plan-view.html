@@ -1,0 +1,145 @@
+@let p = plan();
+<div class="space-y-4">
+  <section class="zn-surface p-4">
+    <div class="mb-3 flex items-center justify-between">
+      <h3 class="zn-section-title">1 · Project &amp; protocol</h3>
+      @if (editable()) { <button type="button" class="zn-btn-link" (click)="editStep.emit(0)">Edit</button> }
+    </div>
+    @if (project(); as pr) {
+      <dl class="zn-kv">
+        <div class="col-span-full"><dt>Project Title / Protocol Title</dt><dd>{{ pr.protocolTitle }}</dd></div>
+        <div><dt>Project</dt><dd>{{ pr.name }} ({{ pr.id }})</dd></div>
+        <div><dt>CRO Project No. / Protocol No.</dt><dd>{{ pr.protocolNo }}</dd></div>
+        <div><dt>Sponsor Project No.</dt><dd>{{ pr.sponsorProjectNo || '—' }}</dd></div>
+        <div><dt>Zenovel Project No.</dt><dd>{{ pr.zenovelProjectNo }}</dd></div>
+        <div><dt>Sponsor</dt><dd>{{ pr.sponsor.name }}</dd></div>
+        <div><dt>CRO</dt><dd>{{ pr.cro.name }}</dd></div>
+        <div><dt>Study</dt><dd>{{ pr.studyType }} · {{ pr.blinding }}</dd></div>
+        <div><dt>Protocol Version / Date</dt><dd>{{ p.protocolVersionNo || '—' }}@if (p.protocolVersionDate) { · {{ p.protocolVersionDate | date: 'dd MMM yyyy' }}}</dd></div>
+        <div><dt>Amendments</dt><dd>{{ p.amendmentDetails || '—' }}</dd></div>
+        <div><dt>Regulatory Guideline</dt><dd>{{ p.regulatoryGuideline || '—' }}</dd></div>
+        <div><dt>Reference Product</dt><dd>{{ p.referenceProductInfo || '—' }}</dd></div>
+        <div><dt>Zenovel SOPs</dt><dd>{{ p.sops.length ? p.sops.join('; ') : '—' }}</dd></div>
+        <div><dt>Protocol Document</dt><dd>{{ p.protocolDocument?.name ?? '—' }}</dd></div>
+      </dl>
+    } @else {
+      <p class="text-sm text-warn">No project selected.</p>
+    }
+    @if (p.protocolSummary.length) {
+      <h4 class="mb-2 mt-4 text-sm font-semibold">Protocol summary</h4>
+      <div class="zn-table-scroll rounded-lg border border-line">
+        <table class="zn-table">
+          <thead><tr><th>Item</th><th>Summary</th><th>Source reference</th></tr></thead>
+          <tbody>
+            @for (s of p.protocolSummary; track s.id) {
+              <tr>
+                <td class="font-medium">{{ s.heading }}@if (s.aiGenerated) { <span class="zn-badge zn-badge-warn ml-1">AI · simulated</span> }</td>
+                <td>{{ s.summary }}</td>
+                <td class="text-xs text-ink-soft">{{ s.sourceSection || '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <section class="zn-surface p-4">
+    <div class="mb-3 flex items-center justify-between">
+      <h3 class="zn-section-title">2 · Scope &amp; monitoring strategy</h3>
+      @if (editable()) { <button type="button" class="zn-btn-link" (click)="editStep.emit(1)">Edit</button> }
+    </div>
+    <dl class="zn-kv">
+      <div class="col-span-full"><dt>Scope of Work</dt><dd class="whitespace-pre-line">{{ p.scopeOfWork || '—' }}</dd></div>
+      <div class="col-span-full"><dt>Monitoring Approach</dt><dd class="whitespace-pre-line">{{ p.monitoringApproach || '—' }}</dd></div>
+      <div><dt>Onsite / Remote</dt><dd>{{ p.onsite ? 'Onsite' : '' }}{{ p.onsite && p.remote ? ' + ' : '' }}{{ p.remote ? 'Remote' : '' }}{{ !p.onsite && !p.remote ? '—' : '' }}</dd></div>
+      <div><dt>Visit Frequency</dt><dd>{{ p.visitFrequency || '—' }}</dd></div>
+      <div><dt>Visit Duration</dt><dd>{{ p.visitDuration || '—' }}</dd></div>
+      <div><dt>Communication Methods</dt><dd>{{ p.communicationMethods || '—' }}</dd></div>
+      <div><dt>Monitoring Schedule</dt><dd>{{ p.monitoringSchedule || '—' }}</dd></div>
+      <div><dt>Other Requirements</dt><dd>{{ p.otherRequirements || '—' }}</dd></div>
+    </dl>
+    <div class="mt-3 grid gap-3 lg:grid-cols-2">
+      <div>
+        <p class="zn-label mb-1">Visit plan (applicable)</p>
+        <ul class="space-y-1 text-sm">
+          @for (v of p.visitPlan; track v.visitType) {
+            @if (v.applicable) {
+              <li class="flex gap-2"><svg lucideIcon="check" [size]="14" class="mt-0.5 text-ok" /> {{ v.visitType }} — {{ v.days }} day(s)@if (v.comments) { · {{ v.comments }}}</li>
+            }
+          }
+        </ul>
+        @if (p.additionalVisitNote) { <p class="mt-1 text-xs text-ink-soft">Note: {{ p.additionalVisitNote }}</p> }
+      </div>
+      <div>
+        <p class="zn-label mb-1">Visit types &amp; checkpoints</p>
+        <ul class="space-y-1 text-sm">
+          @for (v of p.visitTypes; track v.visitType) {
+            @if (v.applicable) {
+              <li class="flex gap-2"><svg lucideIcon="check" [size]="14" class="mt-0.5 text-ok" /> {{ v.visitType }}@if (v.checkpoints) { — <span class="text-ink-soft">{{ v.checkpoints }}</span>}</li>
+            }
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="zn-surface p-4">
+    <div class="mb-3 flex items-center justify-between">
+      <h3 class="zn-section-title">3 · Risk assessment ({{ p.risks.length }})</h3>
+      @if (editable()) { <button type="button" class="zn-btn-link" (click)="editStep.emit(2)">Edit</button> }
+    </div>
+    @if (p.risks.length) {
+      <div class="zn-table-scroll rounded-lg border border-line">
+        <table class="zn-table">
+          <thead><tr><th>Risk</th><th>Category</th><th>S×L×D</th><th>RPN</th><th>Priority</th><th>Mitigation</th><th>Responsible</th><th>Milestone</th><th>Indicators / Escalation</th></tr></thead>
+          <tbody>
+            @for (r of p.risks; track r.id) {
+              <tr>
+                <td class="min-w-48">{{ r.description }}@if (r.aiGenerated) { <span class="zn-badge zn-badge-warn ml-1">AI · simulated</span> }<br /><span class="text-xs text-ink-soft">{{ r.sourceRef }}</span></td>
+                <td>{{ r.category }}</td>
+                <td class="whitespace-nowrap">{{ r.severity }}×{{ r.likelihood }}×{{ r.detectability }}</td>
+                <td class="font-semibold">{{ plans.rpn(r) }}</td>
+                <td><app-status-badge [status]="plans.priority(plans.rpn(r))" /></td>
+                <td class="min-w-48">{{ r.mitigation }}</td>
+                <td>{{ r.responsibleRole }}</td>
+                <td>{{ r.milestone }}</td>
+                <td class="min-w-48 text-xs">{{ r.indicators }}<br />{{ r.escalationTriggers }}<br />Residual: {{ r.residualRisk || '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p class="text-sm text-ink-soft">No risks recorded.</p>
+    }
+  </section>
+
+  <section class="zn-surface p-4">
+    <div class="mb-3 flex items-center justify-between">
+      <h3 class="zn-section-title">4 · Reporting, communication &amp; documentation</h3>
+      @if (editable()) { <button type="button" class="zn-btn-link" (click)="editStep.emit(3)">Edit</button> }
+    </div>
+    <dl class="zn-kv">
+      <div><dt>Communication amongst Zenovel team</dt><dd>{{ p.communicationAmongTeam ? 'Yes' : 'No' }}</dd></div>
+      <div><dt>Communication with sponsor</dt><dd>{{ p.communicationWithSponsor ? 'Yes' : 'No' }}</dd></div>
+      <div><dt>Grading of observations</dt><dd>{{ p.gradingOfObservations ? 'Yes' : 'No' }}</dd></div>
+      <div><dt>Observation Grading</dt><dd>{{ p.observationGrading || '—' }}</dd></div>
+      <div><dt>Report Submission Timeline</dt><dd>{{ p.reportTimeline || '—' }}</dd></div>
+      <div><dt>Document Sharing</dt><dd>{{ p.documentSharing || '—' }}</dd></div>
+      <div><dt>Archival</dt><dd>{{ p.archiving || '—' }}</dd></div>
+      <div><dt>Communication Procedures</dt><dd>{{ p.communicationProcedures || '—' }}</dd></div>
+      <div><dt>Additional Procedures</dt><dd>{{ p.additionalProcedures || '—' }}</dd></div>
+      <div><dt>Plan Template</dt><dd>{{ p.templateDocument?.name ?? '—' }}</dd></div>
+    </dl>
+    @if (p.contacts.length) {
+      <p class="zn-label mb-1 mt-3">Communication channel</p>
+      <ul class="grid gap-1 text-sm sm:grid-cols-2">
+        @for (c of p.contacts; track $index) {
+          <li><span class="font-medium">{{ c.channel }}:</span> {{ c.name }}@if (c.details) { <span class="text-ink-soft">({{ c.details }})</span>}</li>
+        }
+      </ul>
+    }
+  </section>
+</div>
+

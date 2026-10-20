@@ -1,0 +1,137 @@
+@if (blocked()) {
+  <app-error-state title="Delegation not available" message="This delegation record does not exist, is outside your access, or your role cannot edit it." backLink="/delegations" backLabel="Back to delegations" />
+} @else {
+  <app-page-header [title]="existing() ? 'Edit Delegation ' + existing()!.id : 'Create Delegation Record'" description="Training and delegation of monitoring responsibilities (Project Manager).">
+    <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()"><svg lucideIcon="arrow-left" [size]="16" /> Back</button>
+  </app-page-header>
+
+  @if (restored()) {
+    <div class="zn-notice zn-notice-info mb-3">
+      <svg lucideIcon="info" [size]="16" class="mt-0.5 shrink-0" />
+      <span class="flex-1">Unsaved changes from your previous visit were restored.</span>
+      <button type="button" class="zn-btn-link" (click)="discardDraft()">Discard</button>
+    </div>
+  }
+  @if (ackWarning()) {
+    <div class="zn-notice zn-notice-warn mb-3"><svg lucideIcon="triangle-alert" [size]="16" class="mt-0.5 shrink-0" /> {{ ackWarning() }}</div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate class="space-y-4">
+    <section class="zn-surface p-4 md:p-5">
+      <h2 class="zn-section-title mb-3">Project &amp; monitoring plan</h2>
+      <div class="grid gap-3 md:grid-cols-2">
+        <app-form-field label="Project" [control]="form.controls.projectId" [required]="true">
+          <app-searchable-select formControlName="projectId" [options]="projectOptions()" placeholder="Select a project" />
+        </app-form-field>
+        <app-form-field label="Linked Monitoring Plan" [control]="form.controls.planId" [required]="true" [hint]="project() && !planOptions().length ? 'This project has no monitoring plan yet — create one first.' : ''">
+          <app-searchable-select formControlName="planId" [options]="planOptions()" [placeholder]="project() ? 'Select a plan' : 'Select a project first'" />
+        </app-form-field>
+      </div>
+      @if (project(); as p) {
+        <dl class="zn-kv mt-4 rounded-lg bg-sunken p-3">
+          <div class="col-span-full"><dt>Project Title / Protocol Title</dt><dd>{{ p.protocolTitle }}</dd></div>
+          <div><dt>CRO Project No. / Protocol No.</dt><dd>{{ p.protocolNo }}</dd></div>
+          <div><dt>Sponsor Project No.</dt><dd>{{ p.sponsorProjectNo || '—' }}</dd></div>
+          <div><dt>Zenovel Project No.</dt><dd>{{ p.zenovelProjectNo }}</dd></div>
+          <div><dt>CRO Details</dt><dd>{{ p.cro.name }}</dd></div>
+          <div><dt>Sponsor Details</dt><dd>{{ p.sponsor.name }}</dd></div>
+          <div><dt>Type of Study</dt><dd><span class="zn-badge" [class]="p.blinding === 'Blind' ? 'zn-badge-info' : 'zn-badge-ok'">{{ p.blinding }}</span> · {{ p.studyType }}</dd></div>
+          @if (plan(); as mp) {
+            <div><dt>Monitoring Plan Version / Date</dt><dd>v{{ mp.version }} · {{ mp.updatedAt.slice(0, 10) }}</dd></div>
+          }
+        </dl>
+      }
+      <app-form-field class="mt-3" label="CRO Project No. / Protocol Version No.; Date and Amendment details (if any)" [control]="form.controls.protocolVersionDetails">
+        <input class="zn-input" formControlName="protocolVersionDetails" aria-label="Protocol version, date and amendment details" />
+      </app-form-field>
+    </section>
+
+    <section class="zn-surface p-4 md:p-5">
+      <h2 class="zn-section-title mb-3">Monitoring plan meeting</h2>
+      <div class="grid gap-3 md:grid-cols-3">
+        <app-form-field label="Meeting date" [control]="form.controls.meetingDate" [required]="true">
+          <app-date-picker formControlName="meetingDate" ariaLabel="Meeting date" />
+        </app-form-field>
+        <app-form-field label="Start time" [control]="form.controls.startTime" [required]="true">
+          <app-date-picker type="time" formControlName="startTime" ariaLabel="Meeting start time" />
+        </app-form-field>
+        <app-form-field label="End time" [control]="form.controls.endTime" [required]="true">
+          <app-date-picker type="time" formControlName="endTime" [min]="form.controls.startTime.value" ariaLabel="Meeting end time" />
+        </app-form-field>
+      </div>
+
+      <div class="mt-4 grid gap-4 lg:grid-cols-2">
+        @for (grp of [{ arr: attendees, title: 'Attendees', name: 'attendees' }, { arr: conductedBy, title: 'Discussion conducted by', name: 'conductedBy' }]; track grp.name) {
+          <fieldset class="zn-fieldset space-y-2" [formArrayName]="grp.name">
+            <legend>{{ grp.title }}</legend>
+            @for (g of grp.arr.controls; track g; let i = $index) {
+              <div class="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]" [formGroupName]="i">
+                <app-searchable-select formControlName="userId" [options]="peopleOptions()" placeholder="Pick user (optional)" />
+                <input class="zn-input" formControlName="name" placeholder="Name" [attr.aria-label]="grp.title + ' ' + (i + 1) + ' name'" />
+                <input class="zn-input" formControlName="details" placeholder="Details" [attr.aria-label]="grp.title + ' ' + (i + 1) + ' details'" />
+                <button type="button" class="zn-action-btn zn-action-danger" (click)="removePerson(grp.arr, i)" [attr.aria-label]="'Remove ' + grp.title + ' ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
+                @if (g.controls.name.invalid && g.controls.name.touched) { <p class="text-xs text-danger sm:col-span-4">Name is required.</p> }
+              </div>
+            } @empty {
+              <p class="text-sm text-ink-soft">None added.</p>
+            }
+            <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="addPerson(grp.arr)"><svg lucideIcon="plus" [size]="14" /> Add more</button>
+          </fieldset>
+        }
+      </div>
+
+      <div class="mt-4 grid gap-3 md:grid-cols-2">
+        <app-form-field label="Discussion details" [control]="form.controls.discussionDetails" [required]="true">
+          <textarea class="zn-input" rows="3" formControlName="discussionDetails" aria-label="Discussion details"></textarea>
+        </app-form-field>
+        <app-form-field label="Delegated responsibilities" [control]="form.controls.delegatedResponsibilities" [required]="true">
+          <textarea class="zn-input" rows="3" formControlName="delegatedResponsibilities" aria-label="Delegated responsibilities"></textarea>
+        </app-form-field>
+      </div>
+    </section>
+
+    <section class="zn-surface p-4 md:p-5" formGroupName="monitors">
+      <h2 class="zn-section-title mb-1">Delegation of monitor(s)</h2>
+      @if (project(); as p) {
+        <p class="mb-3 text-xs text-ink-soft">
+          @if (p.blinding === 'Blind') {
+            Blinded study: assign Primary/Secondary <strong>Unblinded</strong> and Primary/Secondary <strong>Blinded</strong> monitors.
+          } @else {
+            Open-label study: assign the Primary and Secondary monitor.
+          }
+          Primary duties are required.
+        </p>
+        <div class="grid gap-3 md:grid-cols-2">
+          @for (duty of duties(); track duty) {
+            <div class="rounded-lg border p-3" [class]="isUnblinded(duty) ? 'border-warn/40 bg-warn-soft/40' : isBlinded(duty) ? 'border-info/40 bg-info-soft/40' : 'border-line'">
+              <app-form-field [label]="duty + ' Monitor'" [control]="form.controls.monitors.controls[duty]" [required]="delegations.isRequired(duty)">
+                <app-searchable-select [formControlName]="duty" [options]="monitorOptions()" placeholder="Select monitor" />
+              </app-form-field>
+              <div class="mt-1.5 flex items-center justify-between gap-2 text-xs">
+                <span class="text-ink-soft">{{ users.email(form.controls.monitors.controls[duty].value) || 'No monitor selected' }}</span>
+                @if (isUnblinded(duty)) { <span class="zn-badge zn-badge-warn"><svg lucideIcon="eye" [size]="11" /> Unblinded</span> }
+                @if (isBlinded(duty)) { <span class="zn-badge zn-badge-info"><svg lucideIcon="eye-off" [size]="11" /> Blinded</span> }
+              </div>
+            </div>
+          }
+        </div>
+        @if (separationWarning()) {
+          <div class="zn-notice zn-notice-warn mt-3"><svg lucideIcon="triangle-alert" [size]="16" class="mt-0.5 shrink-0" /> {{ separationWarning() }}</div>
+        }
+      } @else {
+        <p class="text-sm text-ink-soft">Select a project to see the applicable monitor duties.</p>
+      }
+    </section>
+
+    <section class="zn-surface p-4 md:p-5">
+      <app-form-field label="Notes" [control]="form.controls.notes">
+        <textarea class="zn-input" rows="2" formControlName="notes" aria-label="Notes"></textarea>
+      </app-form-field>
+    </section>
+
+    <div class="sticky bottom-0 -mx-3 flex justify-end gap-2 border-t border-line bg-paper/95 px-3 py-3 md:-mx-5 md:px-5">
+      <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()">Cancel</button>
+      <button type="submit" class="zn-btn zn-btn-primary"><svg lucideIcon="save" [size]="16" /> {{ existing() ? 'Save changes' : 'Create delegation' }}</button>
+    </div>
+  </form>
+}

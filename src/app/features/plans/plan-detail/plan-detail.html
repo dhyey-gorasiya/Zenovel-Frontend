@@ -1,0 +1,59 @@
+@if (plan(); as p) {
+  <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start">
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="zn-page-title">Monitoring Plan {{ p.id }}</h1>
+        <span class="zn-badge zn-badge-muted">v{{ p.version }}</span>
+      </div>
+      <p class="mt-1 text-sm text-ink-soft">
+        <a [routerLink]="['/projects', p.projectId]" class="text-accent hover:underline">{{ projects.name(p.projectId) }}</a>
+        · created by {{ p.createdByName }} on {{ p.createdAt | date: 'dd MMM yyyy' }} · updated {{ p.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a routerLink="/plans" class="zn-btn zn-btn-ghost"><svg lucideIcon="arrow-left" [size]="16" /> Plans</a>
+      @if (actions().edit) {
+        <a [routerLink]="['/plans', p.id, 'edit']" class="zn-btn zn-btn-ghost"><svg lucideIcon="pencil" [size]="16" /> Edit</a>
+      }
+      @if (actions().delete) {
+        <button type="button" class="zn-btn zn-btn-danger" (click)="remove()"><svg lucideIcon="trash" [size]="16" /> Delete</button>
+      }
+    </div>
+  </div>
+
+  <div class="grid gap-4 xl:grid-cols-[1fr_24rem]">
+    <app-plan-view [plan]="p" [project]="projects.get(p.projectId)" />
+    <div class="space-y-4">
+      <app-plan-workflow-panel [plan]="p" />
+      <section class="zn-surface">
+        <div class="zn-card-head"><h2 class="zn-section-title">Linked records</h2></div>
+        <div class="space-y-3 p-4 text-sm">
+          <div>
+            <div class="mb-1 flex items-center justify-between">
+              <p class="zn-label">Delegation records</p>
+              @if (roles.can('delegation.manage')) {
+                <a routerLink="/delegations/new" [queryParams]="{ projectId: p.projectId, planId: p.id }" class="zn-btn-link">+ New</a>
+              }
+            </div>
+            @for (d of delegations(); track d.id) {
+              <a [routerLink]="['/delegations', d.id]" class="flex items-center justify-between rounded-md px-2 py-1 hover:bg-mist">
+                <span>{{ d.id }} · {{ d.meetingDate }}</span><app-status-badge [status]="d.authorization" />
+              </a>
+            } @empty { <p class="text-ink-soft">None</p> }
+          </div>
+          <div>
+            <p class="zn-label mb-1">Monitor assignments</p>
+            @for (a of assignments(); track a.id) {
+              <a [routerLink]="['/assignments', a.id]" class="flex items-center justify-between rounded-md px-2 py-1 hover:bg-mist">
+                <span>{{ a.id }} · {{ a.visitType }}</span><app-status-badge [status]="a.status" />
+              </a>
+            } @empty { <p class="text-ink-soft">None</p> }
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+} @else {
+  <app-error-state title="Monitoring Plan not found" message="This plan does not exist, was deleted, or is outside your access." backLink="/plans" backLabel="Back to plans" />
+}
+

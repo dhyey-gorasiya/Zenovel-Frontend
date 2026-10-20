@@ -1,0 +1,127 @@
+<app-page-header title="Settings" description="Your profile, display preferences, demo configuration and local data controls." />
+
+<div class="grid gap-4 xl:grid-cols-3">
+  <section class="zn-surface p-4">
+    <h2 class="zn-section-title mb-3">Profile</h2>
+    @if (auth.user(); as u) {
+      <dl class="zn-kv">
+        <div><dt>Name</dt><dd>{{ u.name }}</dd></div>
+        <div><dt>Email</dt><dd>{{ u.email }}</dd></div>
+        <div><dt>Role</dt><dd>{{ u.role }}</dd></div>
+        <div><dt>Title</dt><dd>{{ u.title }}</dd></div>
+        <div><dt>Organisation</dt><dd>{{ u.organization }}</dd></div>
+      </dl>
+    }
+    <div class="mt-4 flex items-center justify-between border-t border-line pt-3">
+      <span class="text-sm">Theme</span>
+      <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="theme.toggle()">
+        <svg [lucideIcon]="theme.theme() === 'dark' ? 'sun' : 'moon'" [size]="14" /> {{ theme.theme() === 'dark' ? 'Light' : 'Dark' }} mode
+      </button>
+    </div>
+    <div class="zn-notice zn-notice-warn mt-4">
+      <svg lucideIcon="shield-alert" [size]="16" class="mt-0.5 shrink-0" />
+      <span>Sign-in and roles are simulated in the browser for demonstration. They are not a substitute for server-side authentication and authorization.</span>
+    </div>
+  </section>
+
+  <section class="zn-surface p-4 xl:col-span-2">
+    <div class="mb-3 flex items-center justify-between gap-2">
+      <h2 class="zn-section-title">Data &amp; storage</h2>
+      <span class="zn-badge" [class]="storage.available() ? 'zn-badge-ok' : 'zn-badge-danger'">{{ storage.available() ? 'localStorage available' : 'Storage unavailable' }}</span>
+    </div>
+    <dl class="zn-kv mb-4">
+      <div><dt>Projects</dt><dd>{{ data.projects.items().length }}</dd></div>
+      <div><dt>Monitoring Plans</dt><dd>{{ data.plans.items().length }}</dd></div>
+      <div><dt>Delegations</dt><dd>{{ data.delegations.items().length }}</dd></div>
+      <div><dt>Assignments</dt><dd>{{ data.assignments.items().length }}</dd></div>
+      <div><dt>Reports</dt><dd>{{ data.reports.items().length }}</dd></div>
+      <div><dt>Notifications</dt><dd>{{ data.notifications.items().length }}</dd></div>
+    </dl>
+    @for (i of data.issues(); track i.key) {
+      <div class="zn-notice zn-notice-warn mb-2"><svg lucideIcon="triangle-alert" [size]="16" class="mt-0.5 shrink-0" /> {{ i.message }}</div>
+    }
+    <div class="flex flex-wrap items-center gap-3 border-t border-line pt-3">
+      <button type="button" class="zn-btn zn-btn-danger" (click)="resetData()"><svg lucideIcon="rotate-ccw" [size]="16" /> Reset Demo Data</button>
+      <p class="text-xs text-ink-soft">Restores the original fictional sample data. All data lives only in this browser's localStorage.</p>
+    </div>
+  </section>
+</div>
+
+<section class="zn-surface mt-4 overflow-hidden">
+  <div class="zn-card-head">
+    <div>
+      <h2 class="zn-section-title">Demo role permissions</h2>
+      <p class="text-xs text-ink-soft">The requirements do not define every permission, so this matrix is configurable. Changes apply immediately.</p>
+    </div>
+    <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="resetSettings()"><svg lucideIcon="rotate-ccw" [size]="14" /> Reset configuration</button>
+  </div>
+  <div class="zn-table-scroll">
+    <table class="zn-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          @for (r of roles; track r) {
+            <th class="text-center">{{ r }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (g of groups(); track g.group) {
+          <tr><td [attr.colspan]="roles.length + 1" class="bg-sunken text-xs font-bold uppercase tracking-wide text-ink-soft">{{ g.group }}</td></tr>
+          @for (p of g.items; track p.key) {
+            <tr>
+              <td>{{ p.label }}</td>
+              @for (r of roles; track r) {
+                <td class="text-center">
+                  <input type="checkbox" class="zn-check" [checked]="has(r, p.key)" (change)="togglePermission(r, p.key, $any($event.target).checked)" [attr.aria-label]="r + ': ' + p.label" />
+                </td>
+              }
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="mt-4 grid gap-4 xl:grid-cols-2">
+  <section class="zn-surface p-4">
+    <h2 class="zn-section-title mb-1">Risk scoring</h2>
+    <p class="mb-3 text-sm text-ink-soft">
+      Risk Priority Number (RPN) = Severity × Likelihood × Detectability, each scored 1–5 (detectability 5 = hardest to detect), giving 1–125.
+      Thresholds below are configurable and are not regulatory classifications.
+    </p>
+    <div class="grid grid-cols-2 gap-3">
+      <label class="flex flex-col gap-1"><span class="zn-label">High priority when RPN ≥</span><input class="zn-input" type="number" min="2" max="125" [(ngModel)]="high" /></label>
+      <label class="flex flex-col gap-1"><span class="zn-label">Medium priority when RPN ≥</span><input class="zn-input" type="number" min="1" max="124" [(ngModel)]="medium" /></label>
+    </div>
+    @if (thresholdError()) {
+      <p class="mt-2 text-xs text-danger">{{ thresholdError() }}</p>
+    }
+    <p class="mt-2 text-xs text-ink-soft">Otherwise priority is Low.</p>
+    <button type="button" class="zn-btn zn-btn-primary zn-btn-sm mt-3" (click)="saveThresholds()"><svg lucideIcon="save" [size]="14" /> Save thresholds</button>
+
+    <h3 class="mb-1 mt-5 text-sm font-semibold">Observation grades</h3>
+    <p class="mb-2 text-xs text-ink-soft">Used for report findings and as the default grading text in monitoring plans. Comma-separated.</p>
+    <input class="zn-input" [(ngModel)]="grades" aria-label="Observation grades" />
+    <button type="button" class="zn-btn zn-btn-primary zn-btn-sm mt-3" (click)="saveGrades()"><svg lucideIcon="save" [size]="14" /> Save grades</button>
+  </section>
+
+  <section class="zn-surface zn-provisional p-4">
+    <div class="mb-1 flex items-center gap-2">
+      <h2 class="zn-section-title">Monitoring Report sections</h2>
+      <span class="zn-badge zn-badge-warn">Provisional</span>
+    </div>
+    <p class="mb-3 text-sm text-ink-soft">The report specification has not been confirmed by the client. Enable, rename or require sections to match the final template.</p>
+    <ul class="space-y-2">
+      @for (s of sections(); track s.key; let i = $index) {
+        <li class="flex flex-wrap items-center gap-3 rounded-lg border border-line px-3 py-2">
+          <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="zn-check" [checked]="s.enabled" (change)="updateSection(i, { enabled: $any($event.target).checked })" [attr.aria-label]="'Enable ' + s.label" /> Enabled</label>
+          <input class="zn-input min-w-40 flex-1 py-1.5" [value]="s.label" (input)="updateSection(i, { label: $any($event.target).value })" [attr.aria-label]="'Label for ' + s.key" />
+          <label class="flex items-center gap-2 text-sm" [class.opacity-40]="!s.enabled"><input type="checkbox" class="zn-check" [checked]="s.required" [disabled]="!s.enabled" (change)="updateSection(i, { required: $any($event.target).checked })" [attr.aria-label]="'Require ' + s.label" /> Required</label>
+        </li>
+      }
+    </ul>
+    <button type="button" class="zn-btn zn-btn-primary zn-btn-sm mt-3" (click)="saveSections()"><svg lucideIcon="save" [size]="14" /> Save report configuration</button>
+  </section>
+</div>

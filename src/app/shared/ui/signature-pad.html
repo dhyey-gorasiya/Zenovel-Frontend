@@ -1,0 +1,16 @@
+<div class="space-y-3">
+  <div class="zn-notice zn-notice-warn">
+    <svg lucideIcon="triangle-alert" [size]="16" class="mt-0.5 shrink-0" />
+    <span><strong>Prototype simulation.</strong> Typing your name and clicking a button is <u>not</u> a legally binding electronic signature and is not compliant with any e-signature regulation.</span>
+  </div>
+  <label class="flex flex-col gap-1">
+    <span class="zn-label">Type your full name to sign ({{ expectedName() }})</span>
+    <input class="zn-input font-[cursive] text-lg" [ngModel]="typedName()" (ngModelChange)="typedName.set($event)" autocomplete="off" aria-describedby="sig-hint" />
+    <span id="sig-hint" class="text-xs text-ink-soft">Must match the name on your account.</span>
+  </label>
+  <label class="flex items-start gap-2 text-sm">
+    <input type="checkbox" class="zn-check mt-0.5" [ngModel]="attested()" (ngModelChange)="attested.set($event)" />
+    <span>{{ statement() }}</span>
+  </label>
+</div>
+

@@ -1,0 +1,8 @@
+<app-page-header title="Projects" description="Clinical trials and BA/BE studies you can access.">
+  @if (roles.can('project.manage')) {
+    <a routerLink="/projects/new" class="zn-btn zn-btn-primary"><svg lucideIcon="plus" [size]="16" /> Create Project</a>
+  }
+</app-page-header>
+<app-filter-bar [filters]="filters()" [(search)]="search" [(values)]="filterValues" placeholder="Search name, protocol, sponsor, CRO…" />
+<app-data-table [columns]="columns" [rows]="rows()" [actions]="actions" emptyMessage="No projects match your filters." initialSortKey="updatedAt" />
+

@@ -1,0 +1,8 @@
+<app-page-header title="Monitor Assignments" description="Monitors assigned to monitoring visits, with notifications and linked reports.">
+  @if (roles.can('assignment.manage')) {
+    <a routerLink="/assignments/new" class="zn-btn zn-btn-primary"><svg lucideIcon="plus" [size]="16" /> Assign Monitor</a>
+  }
+</app-page-header>
+<app-filter-bar [filters]="filters()" [(search)]="search" [(values)]="filterValues" placeholder="Search ID, project, monitor, visit type…" />
+<app-data-table [columns]="columns" [rows]="rows()" [actions]="actions" emptyMessage="No assignments match your filters." initialSortKey="visitDate" [initialSortAsc]="true" />
+

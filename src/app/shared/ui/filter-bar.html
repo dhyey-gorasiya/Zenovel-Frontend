@@ -1,0 +1,21 @@
+<div class="mb-3 flex flex-col gap-2 lg:flex-row lg:items-center">
+  <label class="relative flex-1 lg:max-w-sm">
+    <span class="sr-only">Search</span>
+    <svg lucideIcon="search" [size]="16" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-soft" />
+    <input type="search" class="zn-input pl-8" [placeholder]="placeholder()" [value]="search()" (input)="search.set($any($event.target).value)" />
+  </label>
+  <div class="flex flex-wrap items-center gap-2">
+    @for (f of filters(); track f.key) {
+      <select class="zn-input w-auto py-1.5 text-sm" [attr.aria-label]="f.label" [value]="values()[f.key] ?? ''" (change)="set(f.key, $any($event.target).value)">
+        <option value="">{{ f.label }}: All</option>
+        @for (o of f.options; track o.value) {
+          <option [value]="o.value" [selected]="values()[f.key] === o.value">{{ o.label }}</option>
+        }
+      </select>
+    }
+    @if (active()) {
+      <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="clear()"><svg lucideIcon="funnel" [size]="14" /> Clear filters</button>
+    }
+  </div>
+</div>
+

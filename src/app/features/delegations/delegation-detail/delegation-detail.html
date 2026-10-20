@@ -1,0 +1,155 @@
+@if (delegation(); as d) {
+  <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start">
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="zn-page-title">Delegation {{ d.id }}</h1>
+        <app-status-badge [status]="d.authorization" label="Authorization" />
+      </div>
+      <p class="mt-1 text-sm text-ink-soft">
+        <a [routerLink]="['/projects', d.projectId]" class="text-accent hover:underline">{{ projects.name(d.projectId) }}</a> ·
+        plan <a [routerLink]="['/plans', d.planId]" class="text-accent hover:underline">{{ plans.label(d.planId) }}</a> ·
+        {{ project()?.blinding }} {{ project()?.studyType }}
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a routerLink="/delegations" class="zn-btn zn-btn-ghost"><svg lucideIcon="arrow-left" [size]="16" /> Delegations</a>
+      @if (delegations.canManage()) {
+        <a [routerLink]="['/delegations', d.id, 'edit']" class="zn-btn zn-btn-ghost"><svg lucideIcon="pencil" [size]="16" /> Edit</a>
+        <button type="button" class="zn-btn zn-btn-danger" (click)="remove()"><svg lucideIcon="trash" [size]="16" /> Delete</button>
+      }
+    </div>
+  </div>
+
+  @if (myAck(); as a) {
+    @if (a.state === 'Pending') {
+      <div class="zn-notice zn-notice-warn mb-4 flex-wrap items-center">
+        <svg lucideIcon="pen-line" [size]="16" class="shrink-0" />
+        <span class="flex-1">You have been delegated as <strong>{{ a.duties.join(', ') }}</strong> monitor. Please acknowledge with your signature or decline.</span>
+        <button type="button" class="zn-btn zn-btn-ok zn-btn-sm" (click)="acknowledge(a)"><svg lucideIcon="signature" [size]="14" /> Acknowledge &amp; sign</button>
+        <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="decline(a)">Decline</button>
+      </div>
+    }
+  }
+
+  <div class="grid gap-4 xl:grid-cols-[1fr_24rem]">
+    <div class="space-y-4">
+      <section class="zn-surface">
+        <div class="zn-card-head">
+          <h2 class="zn-section-title">Delegated monitors &amp; acknowledgements</h2>
+          @if (progress(); as pr) {
+            <span class="text-sm font-semibold">{{ pr.acknowledged }}/{{ pr.total }} acknowledged</span>
+          }
+        </div>
+        @if (progress(); as pr) {
+          <div class="px-4 pt-3">
+            <div class="h-2 overflow-hidden rounded-full bg-mist" role="progressbar" [attr.aria-valuenow]="pr.percent" aria-valuemin="0" aria-valuemax="100">
+              <div class="h-full rounded-full bg-ok transition-[width]" [style.width.%]="pr.percent"></div>
+            </div>
+            <p class="mt-1 text-xs text-ink-soft">{{ pr.pending }} pending · {{ pr.declined }} declined · {{ pr.notSent }} not yet notified</p>
+          </div>
+        }
+        <div class="zn-table-scroll p-4">
+          <table class="zn-table rounded-lg border border-line">
+            <thead><tr><th>Duty</th><th>Monitor</th><th>Status</th><th>Notified</th><th>Responded</th><th>Signature (simulated)</th><th></th></tr></thead>
+            <tbody>
+              @for (a of d.acknowledgements; track a.monitorId) {
+                <tr>
+                  <td>
+                    @for (duty of a.duties; track duty) {
+                      <span class="zn-badge mb-0.5 mr-1" [class]="isUnblinded(duty) ? 'zn-badge-warn' : isBlinded(duty) ? 'zn-badge-info' : 'zn-badge-muted'">{{ duty }}</span>
+                    }
+                  </td>
+                  <td><span class="font-medium">{{ users.name(a.monitorId) }}</span><br /><span class="text-xs text-ink-soft">{{ users.email(a.monitorId) }}</span></td>
+                  <td><app-status-badge [status]="a.state" />@if (a.declineReason) {<p class="mt-1 text-xs text-danger">{{ a.declineReason }}</p>}</td>
+                  <td class="text-xs text-ink-soft">{{ a.notifiedAt ? (a.notifiedAt | date: 'dd MMM yyyy, HH:mm') : '—' }}</td>
+                  <td class="text-xs text-ink-soft">{{ a.respondedAt ? (a.respondedAt | date: 'dd MMM yyyy, HH:mm') : '—' }}</td>
+                  <td class="text-xs">@if (a.signature; as s) { <span class="font-[cursive] text-sm">{{ s.typedName }}</span><br /><span class="text-ink-soft">{{ s.at | date: 'dd MMM yyyy, HH:mm' }}</span> } @else { — }</td>
+                  <td>
+                    @if (myAck()?.monitorId === a.monitorId && a.state === 'Pending') {
+                      <button type="button" class="zn-btn zn-btn-ok zn-btn-sm" (click)="acknowledge(a)">Acknowledge</button>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="7" class="py-6 text-center text-ink-soft">No monitors delegated.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (delegations.canManage()) {
+          <div class="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
+            <button type="button" class="zn-btn zn-btn-primary zn-btn-sm" [disabled]="!unsent().length" (click)="sendNotifications()">
+              <svg lucideIcon="send" [size]="14" /> Send notifications ({{ unsent().length }})
+            </button>
+            <span class="text-xs text-ink-soft">Simulated email + in-app notification to each monitor not yet notified.</span>
+            @if (d.acknowledgements.some(x => x.state === 'Declined')) {
+              <a [routerLink]="['/delegations', d.id, 'edit']" class="zn-btn zn-btn-ghost zn-btn-sm ml-auto"><svg lucideIcon="user-cog" [size]="14" /> Reassign declined duty</a>
+            }
+          </div>
+        }
+      </section>
+
+      <section class="zn-surface p-4">
+        <h2 class="zn-section-title mb-3">Meeting &amp; training details</h2>
+        <dl class="zn-kv">
+          <div><dt>Meeting date</dt><dd>{{ d.meetingDate | date: 'dd MMM yyyy' }}</dd></div>
+          <div><dt>Time</dt><dd>{{ d.startTime }} – {{ d.endTime }}</dd></div>
+          <div><dt>Protocol version / amendments</dt><dd>{{ d.protocolVersionDetails || '—' }}</dd></div>
+          <div><dt>Monitoring plan</dt><dd>{{ plans.label(d.planId) }}</dd></div>
+          <div class="col-span-full"><dt>Attendees</dt><dd>@for (x of d.attendees; track $index; let last = $last) {{{ x.name }}@if (x.details) { ({{ x.details }})}@if (!last) {, }} @empty { — }</dd></div>
+          <div class="col-span-full"><dt>Discussion conducted by</dt><dd>@for (x of d.conductedBy; track $index; let last = $last) {{{ x.name }}@if (x.details) { ({{ x.details }})}@if (!last) {, }} @empty { — }</dd></div>
+          <div class="col-span-full"><dt>Discussion details</dt><dd class="whitespace-pre-line">{{ d.discussionDetails || '—' }}</dd></div>
+          <div class="col-span-full"><dt>Delegated responsibilities</dt><dd class="whitespace-pre-line">{{ d.delegatedResponsibilities || '—' }}</dd></div>
+          @if (d.notes) { <div class="col-span-full"><dt>Notes</dt><dd class="whitespace-pre-line">{{ d.notes }}</dd></div> }
+        </dl>
+      </section>
+    </div>
+
+    <div class="space-y-4">
+      <section class="zn-surface">
+        <div class="zn-card-head"><h2 class="zn-section-title">Delegated monitor authorization</h2></div>
+        <div class="space-y-3 p-4 text-sm">
+          <div class="flex items-center justify-between"><span class="zn-label">Status</span><app-status-badge [status]="d.authorization" /></div>
+          @if (d.authorizationRequestedAt) {
+            <p class="text-xs text-ink-soft">Requested {{ d.authorizationRequestedAt | date: 'dd MMM yyyy, HH:mm' }}</p>
+          }
+          @if (d.authorizationSignature; as s) {
+            <div class="rounded-lg bg-ok-soft p-3">
+              <p class="text-xs text-ok">Authorized with simulated signature</p>
+              <p class="font-[cursive] text-lg">{{ s.typedName }}</p>
+              <p class="text-xs text-ink-soft">{{ users.name(s.userId) }} · {{ s.at | date: 'dd MMM yyyy, HH:mm' }}</p>
+            </div>
+          }
+          @if (d.authorizationComment) { <p class="text-ink-soft">“{{ d.authorizationComment }}”</p> }
+
+          @if (canRequestAuth()) {
+            <div class="rounded-lg border border-line p-3">
+              <label class="flex items-start gap-2">
+                <input type="checkbox" class="zn-check mt-0.5" [checked]="authorizeChecked()" (change)="authorizeChecked.set($any($event.target).checked)" />
+                <span>All delegated monitors have acknowledged. Initiate HOD/VP authorization.</span>
+              </label>
+              <button type="button" class="zn-btn zn-btn-primary zn-btn-sm mt-2" [disabled]="!authorizeChecked()" (click)="requestAuthorization()"><svg lucideIcon="shield-check" [size]="14" /> Initiate authorization</button>
+            </div>
+          } @else if (roles.can('delegation.requestAuthorization') && d.authorization === 'Not Requested' && !progress()?.complete) {
+            <p class="text-xs text-ink-soft">Authorization can be initiated once every delegated monitor has acknowledged.</p>
+          }
+
+          @if (canAuthorize()) {
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="zn-btn zn-btn-ok zn-btn-sm" (click)="authorize()"><svg lucideIcon="badge-check" [size]="14" /> Authorize &amp; sign</button>
+              <button type="button" class="zn-btn zn-btn-danger zn-btn-sm" (click)="rejectAuthorization()"><svg lucideIcon="circle-x" [size]="14" /> Reject</button>
+            </div>
+          }
+          <p class="text-[0.7rem] text-ink-soft">Signatures in this prototype are simulations and are not legally binding.</p>
+        </div>
+      </section>
+
+      <section class="zn-surface">
+        <div class="zn-card-head"><h2 class="zn-section-title">History</h2></div>
+        <div class="p-4"><app-activity-timeline [items]="history()" /></div>
+      </section>
+    </div>
+  </div>
+} @else {
+  <app-error-state title="Delegation not found" message="This delegation record does not exist, was deleted, or is outside your access." backLink="/delegations" backLabel="Back to delegations" />
+}

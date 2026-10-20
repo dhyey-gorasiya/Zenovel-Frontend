@@ -1,0 +1,71 @@
+@if (assignment(); as a) {
+  <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start">
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="zn-page-title">{{ a.visitType }} — {{ a.id }}</h1>
+        <app-status-badge [status]="a.status" />
+      </div>
+      <p class="mt-1 text-sm text-ink-soft">
+        <a [routerLink]="['/projects', a.projectId]" class="text-accent hover:underline">{{ projects.name(a.projectId) }}</a> · visit on {{ a.visitDate | date: 'EEE, dd MMM yyyy' }}
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a routerLink="/assignments" class="zn-btn zn-btn-ghost"><svg lucideIcon="arrow-left" [size]="16" /> Assignments</a>
+      @if (actions().edit) {
+        <a [routerLink]="['/assignments', a.id, 'edit']" class="zn-btn zn-btn-ghost"><svg lucideIcon="pencil" [size]="16" /> Edit</a>
+      }
+      @if (actions().delete) {
+        <button type="button" class="zn-btn zn-btn-danger" (click)="remove(a)"><svg lucideIcon="trash" [size]="16" /> Delete</button>
+      }
+    </div>
+  </div>
+
+  <div class="grid gap-4 xl:grid-cols-[1fr_24rem]">
+    <div class="space-y-4">
+      <section class="zn-surface p-4">
+        <h2 class="zn-section-title mb-3">Assignment details</h2>
+        <dl class="zn-kv">
+          <div><dt>Assignment ID</dt><dd>{{ a.id }}</dd></div>
+          <div><dt>Project</dt><dd>{{ projects.name(a.projectId) }} ({{ projects.get(a.projectId)?.protocolNo }})</dd></div>
+          <div><dt>Monitoring visit type</dt><dd>{{ a.visitType }}</dd></div>
+          <div><dt>Visit date</dt><dd>{{ a.visitDate | date: 'dd MMM yyyy' }}</dd></div>
+          <div><dt>Assigned monitor</dt><dd>{{ users.name(a.monitorId) }}</dd></div>
+          <div><dt>Monitor email</dt><dd>{{ a.monitorEmail }}</dd></div>
+          <div><dt>Linked monitoring plan</dt><dd>@if (a.planId) { <a [routerLink]="['/plans', a.planId]" class="text-accent hover:underline">{{ plans.label(a.planId) }}</a> } @else { — }</dd></div>
+          <div><dt>Linked monitoring report</dt><dd>@if (a.reportId) { <a [routerLink]="['/reports', a.reportId]" class="text-accent hover:underline">{{ a.reportId }}</a> · {{ reports.get(a.reportId)?.status }} } @else { — }</dd></div>
+          <div><dt>Notified</dt><dd>{{ a.notifiedAt ? (a.notifiedAt | date: 'dd MMM yyyy, HH:mm') : 'Not yet' }}</dd></div>
+          <div><dt>Acknowledged</dt><dd>{{ a.acknowledgedAt ? (a.acknowledgedAt | date: 'dd MMM yyyy, HH:mm') : 'Not yet' }}</dd></div>
+          <div><dt>Last updated</dt><dd>{{ a.updatedAt | date: 'dd MMM yyyy, HH:mm' }}</dd></div>
+          @if (a.notes) { <div class="col-span-full"><dt>Notes</dt><dd class="whitespace-pre-line">{{ a.notes }}</dd></div> }
+        </dl>
+      </section>
+      <section class="zn-surface">
+        <div class="zn-card-head"><h2 class="zn-section-title">History</h2></div>
+        <div class="p-4"><app-activity-timeline [items]="history()" /></div>
+      </section>
+    </div>
+
+    <section class="zn-surface h-fit">
+      <div class="zn-card-head"><h2 class="zn-section-title">Actions</h2></div>
+      <div class="space-y-3 p-4 text-sm">
+        @if (actions().notify) {
+          <button type="button" class="zn-btn zn-btn-primary w-full" (click)="notify(a)"><svg lucideIcon="mail" [size]="16" /> {{ a.notifiedAt ? 'Resend' : 'Preview & send' }} email notification</button>
+          <p class="text-xs text-ink-soft">Simulated email with a link to the assignment and report. No real email is sent.</p>
+        }
+        @if (actions().acknowledge) {
+          <button type="button" class="zn-btn zn-btn-ok w-full" (click)="acknowledge(a)"><svg lucideIcon="check" [size]="16" /> Mark as acknowledged</button>
+        }
+        @if (a.reportId) {
+          <a [routerLink]="['/reports', a.reportId]" class="zn-btn zn-btn-ghost w-full"><svg lucideIcon="file-text" [size]="16" /> Open linked monitoring report</a>
+        } @else if (actions().startReport) {
+          <a routerLink="/reports/new" [queryParams]="{ assignmentId: a.id }" class="zn-btn zn-btn-primary w-full"><svg lucideIcon="file-pen" [size]="16" /> Start monitoring report</a>
+        } @else {
+          <p class="text-xs text-ink-soft">No report linked yet. The assigned monitor can start the report from this page.</p>
+        }
+      </div>
+    </section>
+  </div>
+} @else {
+  <app-error-state title="Assignment not found" message="This assignment does not exist, was deleted, or is outside your access." backLink="/assignments" backLabel="Back to assignments" />
+}
+

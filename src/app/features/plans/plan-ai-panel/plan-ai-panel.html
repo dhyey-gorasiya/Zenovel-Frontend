@@ -1,0 +1,81 @@
+<section class="rounded-xl border border-dashed border-accent/50 bg-accent-soft/40 p-4">
+  <div class="flex flex-wrap items-start gap-3">
+    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-white"><svg lucideIcon="sparkles" [size]="18" /></span>
+    <div class="min-w-0 flex-1">
+      <p class="font-semibold text-ink">{{ mode() === 'summary' ? 'AI-assisted Protocol Summary' : 'AI-assisted Risk Assessment' }} <span class="zn-badge zn-badge-warn ml-1">Simulated</span></p>
+      <p class="text-xs text-ink-soft">
+        Prototype only — no AI service is called and the protocol is not read. Suggestions are deterministic placeholders built from the project record. Review every item before accepting.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      @if (!result()) {
+        <button type="button" class="zn-btn zn-btn-primary zn-btn-sm" [disabled]="!context() || loading()" (click)="generate()">
+          <svg lucideIcon="sparkles" [size]="14" /> {{ mode() === 'summary' ? 'Generate Protocol Summary' : 'Generate Risk Assessment' }}
+        </button>
+      } @else {
+        <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" [disabled]="loading()" (click)="regenerate()"><svg lucideIcon="refresh-cw" [size]="14" /> Regenerate suggestions</button>
+      }
+    </div>
+  </div>
+  @if (!context()) {
+    <p class="mt-3 text-sm text-warn">Select a project in Step 1 to enable suggestions.</p>
+  }
+
+  @if (loading()) {
+    <app-loading-state message="Generating simulated suggestions…" />
+  } @else if (result(); as r) {
+    @if (r.warnings.length) {
+      <div class="zn-notice zn-notice-warn mt-3 block">
+        <p class="mb-1 flex items-center gap-2 font-semibold"><svg lucideIcon="triangle-alert" [size]="15" /> Missing-information warnings</p>
+        <ul class="list-disc space-y-0.5 pl-6">
+          @for (w of r.warnings; track w) {
+            <li>{{ w }}</li>
+          }
+        </ul>
+      </div>
+    }
+    <div class="mt-3 flex flex-wrap items-center gap-2">
+      <span class="text-xs text-ink-soft">{{ pendingCount() }} pending · {{ acceptedCount() }} accepted</span>
+      <span class="flex-1"></span>
+      <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" [disabled]="!pendingCount()" (click)="acceptAll()"><svg lucideIcon="check-check" [size]="14" /> Accept all pending</button>
+      @if (existingCount() > 0) {
+        <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" [disabled]="!pendingCount()" (click)="replaceAll()"><svg lucideIcon="rotate-ccw" [size]="14" /> Replace existing with pending</button>
+      }
+    </div>
+    <ul class="mt-2 space-y-2">
+      @for (s of suggestions(); track s.item.id; let i = $index) {
+        <li class="rounded-lg border bg-paper p-3 text-sm" [class]="s.state === 'accepted' ? 'border-ok/50' : s.state === 'rejected' ? 'border-line opacity-60' : 'border-line'">
+          @if (isSummary(s.item)) {
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="font-semibold">{{ s.item.heading }}</p>
+              <span class="text-xs text-ink-soft">· {{ s.item.sourceSection }}</span>
+            </div>
+            @if (s.state === 'pending') {
+              <textarea class="zn-input mt-1.5" rows="2" [ngModel]="s.item.summary" (ngModelChange)="editSummary(i, $event)" [attr.aria-label]="'Edit suggestion ' + s.item.heading"></textarea>
+            } @else {
+              <p class="mt-1 text-ink-soft">{{ s.item.summary }}</p>
+            }
+          } @else {
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="font-semibold">{{ s.item.description }}</p>
+              <span class="zn-badge zn-badge-muted">{{ s.item.category }}</span>
+              <app-status-badge [status]="priority(s.item)" />
+              <span class="text-xs text-ink-soft">S{{ s.item.severity }} × L{{ s.item.likelihood }} × D{{ s.item.detectability }} = {{ rpn(s.item) }}</span>
+            </div>
+            <p class="mt-1 text-ink-soft"><span class="font-medium text-ink">Suggested mitigation:</span> {{ s.item.mitigation }} ({{ s.item.responsibleRole }}, milestone {{ s.item.milestone }})</p>
+            <p class="text-xs text-ink-soft">{{ s.item.sourceRef }}</p>
+          }
+          <div class="mt-2 flex items-center gap-2">
+            @if (s.state === 'pending') {
+              <button type="button" class="zn-btn zn-btn-ok zn-btn-sm" (click)="accept(i)"><svg lucideIcon="thumbs-up" [size]="13" /> Accept</button>
+              <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="reject(i)"><svg lucideIcon="thumbs-down" [size]="13" /> Reject</button>
+            } @else {
+              <app-status-badge [status]="s.state === 'accepted' ? 'Approved' : 'Rejected'" />
+              <span class="text-xs text-ink-soft">{{ s.state === 'accepted' ? 'Added to the plan — edit it in the form below.' : 'Rejected' }}</span>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

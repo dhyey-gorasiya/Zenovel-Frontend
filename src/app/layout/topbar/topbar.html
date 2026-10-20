@@ -1,0 +1,110 @@
+<header class="zn-no-print flex items-center gap-2 border-b border-line bg-paper px-3 py-2 md:gap-3 md:px-5">
+  <button type="button" class="zn-icon-btn lg:hidden" aria-label="Open navigation" (click)="menu.emit()"><svg lucideIcon="menu" [size]="20" /></button>
+
+  <div class="min-w-0 flex-1">
+    <p class="truncate text-base font-semibold text-ink">{{ title() }}</p>
+    <nav aria-label="Breadcrumb" class="hidden sm:block">
+      <ol class="flex items-center gap-1 truncate text-xs text-ink-soft">
+        <li><a routerLink="/dashboard" class="hover:text-accent">Home</a></li>
+        @for (c of crumbs(); track c.url; let last = $last) {
+          <li aria-hidden="true">/</li>
+          <li>
+            @if (last) {
+              <span aria-current="page" class="font-medium text-ink">{{ c.label }}</span>
+            } @else {
+              <a [routerLink]="c.url" class="hover:text-accent">{{ c.label }}</a>
+            }
+          </li>
+        }
+      </ol>
+    </nav>
+  </div>
+
+  <div class="relative hidden md:block" data-menu="search">
+    <svg lucideIcon="search" [size]="16" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-soft" />
+    <input type="search" class="zn-input w-56 pl-8 lg:w-72" placeholder="Search projects, plans, reports…" aria-label="Global search"
+      [value]="query()" (input)="query.set($any($event.target).value); openMenu.set('search')" (focus)="openMenu.set('search')"
+      (keydown.enter)="results()[0] && go(results()[0].link)" />
+    @if (openMenu() === 'search' && query().trim().length >= 2) {
+      <div class="absolute right-0 z-40 mt-1 w-[26rem] overflow-hidden rounded-lg border border-line bg-paper shadow-lg">
+        @for (r of results(); track r.type + r.id) {
+          <button type="button" class="flex w-full items-start gap-3 px-3 py-2 text-left text-sm hover:bg-mist" (click)="go(r.link)">
+            <span class="mt-0.5 w-24 shrink-0 text-[0.65rem] font-bold uppercase tracking-wide text-accent">{{ r.type }}</span>
+            <span class="min-w-0"><span class="block truncate font-medium">{{ r.title }}</span><span class="block truncate text-xs text-ink-soft">{{ r.subtitle }}</span></span>
+          </button>
+        } @empty {
+          <p class="px-3 py-3 text-sm text-ink-soft">No matching records you can access.</p>
+        }
+      </div>
+    }
+  </div>
+
+  <button type="button" class="zn-icon-btn" (click)="theme.toggle()" [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'">
+    <svg [lucideIcon]="theme.theme() === 'dark' ? 'sun' : 'moon'" [size]="18" />
+  </button>
+
+  <div class="relative" data-menu="bell">
+    <button type="button" class="zn-icon-btn relative" (click)="toggleMenu('bell')" [attr.aria-expanded]="openMenu() === 'bell'"
+      [attr.aria-label]="'Notifications, ' + notifications.unreadCount() + ' unread'">
+      <svg lucideIcon="bell" [size]="18" />
+      @if (notifications.unreadCount() > 0) {
+        <span class="absolute -right-0.5 -top-0.5 min-w-[1.1rem] rounded-full bg-danger px-1 text-center text-[0.62rem] font-bold leading-[1.1rem] text-white">{{ notifications.unreadCount() }}</span>
+      }
+    </button>
+    @if (openMenu() === 'bell') {
+      <div class="absolute right-0 z-40 mt-1 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-line bg-paper shadow-lg">
+        <div class="flex items-center justify-between border-b border-line px-3 py-2">
+          <span class="text-sm font-semibold">Notifications</span>
+          @if (notifications.unreadCount()) {
+            <button type="button" class="zn-btn-link" (click)="notifications.markAllRead()">Mark all read</button>
+          }
+        </div>
+        <ul class="max-h-80 overflow-auto">
+          @for (n of latest(); track n.id) {
+            <li>
+              <button type="button" class="flex w-full gap-2 px-3 py-2.5 text-left text-sm hover:bg-mist" (click)="openNotification(n)">
+                <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full" [class]="n.read ? 'bg-transparent' : 'bg-accent'"></span>
+                <span class="min-w-0">
+                  <span class="block font-medium" [class.text-ink-soft]="n.read">{{ n.title }}</span>
+                  <span class="block truncate text-xs text-ink-soft">{{ n.message }}</span>
+                  <span class="block text-[0.68rem] text-ink-soft">{{ n.createdAt | date: 'dd MMM, HH:mm' }}</span>
+                </span>
+              </button>
+            </li>
+          } @empty {
+            <li class="px-3 py-6 text-center text-sm text-ink-soft">You're all caught up.</li>
+          }
+        </ul>
+        <a routerLink="/notifications" class="block border-t border-line px-3 py-2 text-center text-sm font-semibold text-accent hover:bg-mist" (click)="closeAll()">View all</a>
+      </div>
+    }
+  </div>
+
+  @if (auth.user(); as u) {
+    <div class="relative" data-menu="profile">
+      <button type="button" class="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-mist" (click)="toggleMenu('profile')" [attr.aria-expanded]="openMenu() === 'profile'" aria-label="User menu">
+        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-soft text-xs font-bold text-accent">{{ initials() }}</span>
+        <span class="hidden text-left leading-tight lg:block">
+          <span class="block text-sm font-semibold">{{ u.name }}</span>
+          <span class="block text-[0.7rem] text-ink-soft">{{ u.role }}</span>
+        </span>
+        <svg lucideIcon="chevron-down" [size]="14" class="hidden text-ink-soft lg:block" />
+      </button>
+      @if (openMenu() === 'profile') {
+        <div class="absolute right-0 z-40 mt-1 w-72 overflow-hidden rounded-lg border border-line bg-paper shadow-lg">
+          <div class="border-b border-line px-3 py-3">
+            <p class="font-semibold">{{ u.name }}</p>
+            <p class="text-xs text-ink-soft">{{ u.email }}</p>
+            <p class="mt-1 text-xs"><span class="zn-badge zn-badge-review">{{ u.role }}</span> <span class="text-ink-soft">{{ u.title }} · {{ u.organization }}</span></p>
+          </div>
+          <p class="border-b border-line bg-warn-soft px-3 py-2 text-[0.7rem] text-warn">Prototype sign-in. Demo roles are not a substitute for server-side authorization.</p>
+          <a routerLink="/settings" class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-mist" (click)="closeAll()"><svg lucideIcon="settings" [size]="16" /> Settings</a>
+          <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-danger hover:bg-danger-soft" (click)="logout.emit()">
+            <svg lucideIcon="log-out" [size]="16" /> Sign out
+          </button>
+        </div>
+      }
+    </div>
+  }
+</header>
+

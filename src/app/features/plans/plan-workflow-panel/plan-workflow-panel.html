@@ -1,0 +1,85 @@
+@let p = plan();
+@let a = actions();
+<section class="zn-surface">
+  <div class="zn-card-head"><h2 class="zn-section-title">Review &amp; approval</h2></div>
+  <div class="space-y-4 p-4">
+    <div class="grid grid-cols-2 gap-3">
+      <div class="rounded-lg bg-sunken p-3">
+        <p class="zn-label">Plan status</p>
+        <div class="mt-1"><app-status-badge [status]="p.status" label="Plan status" /></div>
+      </div>
+      <div class="rounded-lg bg-sunken p-3">
+        <p class="zn-label">Sponsor review</p>
+        <div class="mt-1"><app-status-badge [status]="p.sponsorReview" label="Sponsor review" /></div>
+      </div>
+    </div>
+
+    <ol class="space-y-1.5 text-sm" aria-label="Sign-off stages">
+      @for (s of stages; track s; let i = $index) {
+        <li class="flex items-center gap-2">
+          <span class="flex h-5 w-5 items-center justify-center rounded-full text-[0.65rem] font-bold" [class]="stageDone(i) ? 'bg-ok text-white' : 'bg-mist text-ink-soft'">
+            @if (stageDone(i)) { <svg lucideIcon="check" [size]="12" /> } @else { {{ i + 1 }} }
+          </span>
+          <span [class.text-ink-soft]="!stageDone(i)">{{ s }}</span>
+        </li>
+      }
+    </ol>
+
+    @if (disabledReason()) {
+      <p class="zn-notice zn-notice-info">{{ disabledReason() }}</p>
+    }
+
+    <div class="flex flex-wrap gap-2">
+      @if (a.submitForPmReview) {
+        <button type="button" class="zn-btn zn-btn-primary zn-btn-sm" [disabled]="!!disabledReason()" (click)="submitForPmReview()"><svg lucideIcon="send" [size]="14" /> Submit for PM Review</button>
+      }
+      @if (a.pmFinalSave) {
+        <button type="button" class="zn-btn zn-btn-primary zn-btn-sm" [disabled]="!!disabledReason()" (click)="pmFinalSave()"><svg lucideIcon="signature" [size]="14" /> Final save &amp; sign (send to HOD)</button>
+      }
+      @if (a.pmReturn) {
+        <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" [disabled]="!!disabledReason()" (click)="pmReturn()"><svg lucideIcon="undo-2" [size]="14" /> Return for rework</button>
+      }
+      @if (a.hodDecide) {
+        <button type="button" class="zn-btn zn-btn-ok zn-btn-sm" (click)="hodApprove()"><svg lucideIcon="badge-check" [size]="14" /> Approve (HOD)</button>
+        <button type="button" class="zn-btn zn-btn-danger zn-btn-sm" (click)="hodReject()"><svg lucideIcon="circle-x" [size]="14" /> Reject</button>
+      }
+      @if (a.sendToSponsor) {
+        <button type="button" class="zn-btn zn-btn-primary zn-btn-sm" [disabled]="!!disabledReason()" (click)="openShare()"><svg lucideIcon="mail" [size]="14" /> {{ p.sponsorReview === 'Changes Requested' ? 'Resubmit to sponsor' : 'Share with sponsor for review' }}</button>
+      }
+      @if (a.pmRespond) {
+        <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="pmRespond()"><svg lucideIcon="message-square" [size]="14" /> Respond to sponsor comments</button>
+      }
+      @if (a.sponsorDecide) {
+        <button type="button" class="zn-btn zn-btn-ok zn-btn-sm" (click)="sponsorApprove()"><svg lucideIcon="badge-check" [size]="14" /> Approve &amp; sign off</button>
+        <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="sponsorChanges()"><svg lucideIcon="message-square" [size]="14" /> Request changes</button>
+      }
+      @if (noActions()) {
+        <p class="text-sm text-ink-soft">No review actions are available to your role at this stage.</p>
+      }
+    </div>
+
+    <div>
+      <p class="zn-label mb-2">Approval history &amp; reviewer comments</p>
+      <app-approval-history [entries]="reversedReviews()" />
+    </div>
+  </div>
+</section>
+
+@if (sharing()) {
+  <app-modal title="Share with sponsor for review" subtitle="Enter To / CC recipients; a simulated email preview follows." (closed)="sharing.set(false)">
+    <form [formGroup]="shareForm" class="space-y-3" (ngSubmit)="share()">
+      <app-form-field label="To" [control]="shareForm.controls.to" [required]="true" hint="Comma-separated email addresses">
+        <input class="zn-input" formControlName="to" aria-label="To" />
+      </app-form-field>
+      <app-form-field label="CC" [control]="shareForm.controls.cc" hint="Optional">
+        <input class="zn-input" formControlName="cc" aria-label="CC" />
+      </app-form-field>
+      <p class="text-xs text-ink-soft">Designated recipients receive review and comment access in this prototype via in-app notifications.</p>
+    </form>
+    <ng-container modal-actions>
+      <button type="button" class="zn-btn zn-btn-ghost" (click)="sharing.set(false)">Cancel</button>
+      <button type="button" class="zn-btn zn-btn-primary" (click)="share()"><svg lucideIcon="mail" [size]="16" /> Preview email</button>
+    </ng-container>
+  </app-modal>
+}
+
