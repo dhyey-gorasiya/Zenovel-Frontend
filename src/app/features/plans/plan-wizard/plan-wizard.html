@@ -297,15 +297,21 @@
               <p class="zn-label">Communication channel</p>
               <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="addContact()"><svg lucideIcon="plus" [size]="14" /> Add contact</button>
             </div>
+            <p class="text-xs text-ink-soft">Pick the Zenovel person from the list, or type a name. Sponsor contacts are entered manually. Use "Add contact" for anyone else.</p>
             @for (g of contacts.controls; track g; let i = $index) {
-              <div class="grid gap-2 md:grid-cols-[16rem_1fr_1fr_auto]" [formGroupName]="i">
+              <div class="grid gap-2 md:grid-cols-[16rem_14rem_1fr_1fr_auto]" [formGroupName]="i">
                 <select class="zn-input" formControlName="channel" [attr.aria-label]="'Contact ' + (i + 1) + ' channel'">
                   @for (c of channels; track c) { <option [value]="c">{{ c }}</option> }
                 </select>
+                @if (g.controls.channel.value === 'Sponsor') {
+                  <span class="hidden md:block"></span>
+                } @else {
+                  <app-searchable-select formControlName="userId" [options]="contactOptions()[g.controls.channel.value]" placeholder="Pick name" />
+                }
                 <input class="zn-input" formControlName="name" placeholder="Name" [attr.aria-label]="'Contact ' + (i + 1) + ' name'" />
                 <input class="zn-input" formControlName="details" placeholder="Details (email, phone…)" [attr.aria-label]="'Contact ' + (i + 1) + ' details'" />
                 <button type="button" class="zn-action-btn zn-action-danger" (click)="remove(contacts, i)" [attr.aria-label]="'Remove contact ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
-                @if (g.controls.name.invalid && g.controls.name.touched) { <p class="text-xs text-danger md:col-span-4">Contact name is required.</p> }
+                @if (g.controls.name.invalid && g.controls.name.touched) { <p class="text-xs text-danger md:col-span-5">Contact name is required.</p> }
               </div>
             } @empty {
               <p class="text-sm text-ink-soft">No contacts. Add the CRA, PM, back-up PM, management and sponsor contacts.</p>

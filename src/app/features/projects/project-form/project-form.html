@@ -1,8 +1,10 @@
 @if (notFound()) {
   <app-error-state title="Project not found" message="This project does not exist or you don't have access to it." backLink="/projects" backLabel="Back to projects" />
 } @else {
-  <app-page-header [title]="id() ? 'Edit ' + (existing()?.name ?? '') : 'Create Project'"
-    [description]="id() ? 'Update project details. Related plans, delegations and reports reference this record by ID.' : 'Register a new clinical trial or BA/BE study.'">
+  <app-page-header [title]="isDetails() ? 'Complete details · ' + (existing()?.name ?? '') : id() ? 'Edit ' + (existing()?.name ?? '') : 'Create Project'"
+    [description]="isDetails() ? 'Fill in the project details assigned to you. Details entered by HOD/VP are shown read-only.'
+      : id() ? 'Update project details. Related plans, delegations and reports reference this record by ID.'
+      : 'Register the project and assign the Project Manager. The assigned Project Manager completes the remaining details.'">
     <a [routerLink]="id() ? ['/projects', id()] : '/projects'" class="zn-btn zn-btn-ghost" (click)="$event.preventDefault(); cancel()"><svg lucideIcon="arrow-left" [size]="16" /> Back</a>
   </app-page-header>
 
@@ -15,14 +17,63 @@
   }
 
   <form [formGroup]="form" (ngSubmit)="save()" novalidate class="space-y-4">
+    @if (isDetails()) {
+      <section class="zn-surface p-4 md:p-5">
+        <h2 class="zn-section-title mb-1">Project details</h2>
+        <p class="mb-3 text-xs text-ink-soft">Completed by the assigned Project Manager. The sections below were entered by HOD/VP and are read-only here.</p>
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <app-form-field label="Project Name" [control]="form.controls.name" [required]="true" hint="Defaults to the Zenovel Project No." for="p-name">
+            <input id="p-name" class="zn-input" formControlName="name" />
+          </app-form-field>
+          <app-form-field label="Project Status" [control]="form.controls.status" [required]="true" for="p-status">
+            <select id="p-status" class="zn-input" formControlName="status">
+              @for (s of statuses; track s) {
+                <option [value]="s">{{ s }}</option>
+              }
+            </select>
+          </app-form-field>
+          <app-form-field label="Study Type" [control]="form.controls.studyType" [required]="true" for="p-type">
+            <select id="p-type" class="zn-input" formControlName="studyType">
+              @for (s of studyTypes; track s) {
+                <option [value]="s">{{ s }}</option>
+              }
+            </select>
+          </app-form-field>
+          <app-form-field label="Type of Study (blinding)" [control]="form.controls.blinding" [required]="true" hint="Determines monitor duties in Training & Delegation" for="p-blind">
+            <select id="p-blind" class="zn-input" formControlName="blinding">
+              @for (b of blindings; track b) {
+                <option [value]="b">{{ b }}</option>
+              }
+            </select>
+          </app-form-field>
+          <app-form-field label="Project Start Date" [control]="form.controls.startDate" [required]="true">
+            <app-date-picker formControlName="startDate" ariaLabel="Project start date" />
+          </app-form-field>
+          <app-form-field label="Project End Date" [control]="form.controls.endDate" [required]="true">
+            <app-date-picker formControlName="endDate" [min]="form.controls.startDate.value" ariaLabel="Project end date" />
+          </app-form-field>
+        </div>
+        <div class="mt-3 grid gap-3 lg:grid-cols-2">
+          <div class="space-y-3">
+            <app-form-field label="Description" [control]="form.controls.description" for="p-desc">
+              <textarea id="p-desc" class="zn-input" rows="3" formControlName="description"></textarea>
+            </app-form-field>
+            <app-form-field label="Notes" [control]="form.controls.notes" for="p-notes">
+              <textarea id="p-notes" class="zn-input" rows="3" formControlName="notes"></textarea>
+            </app-form-field>
+          </div>
+          <app-form-field label="Protocol document" hint="Prototype stores file name and size only — the file itself is not uploaded.">
+            <app-file-upload formControlName="protocolDocument" label="Upload protocol (PDF/DOC)" />
+          </app-form-field>
+        </div>
+      </section>
+    }
+
     <section class="zn-surface p-4 md:p-5">
       <h2 class="zn-section-title mb-3">Project identification</h2>
       <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <app-form-field label="Project ID" hint="Generated automatically">
           <input class="zn-input" [value]="existing()?.id ?? nextId()" readonly />
-        </app-form-field>
-        <app-form-field label="Project Name" [control]="form.controls.name" [required]="true" for="p-name">
-          <input id="p-name" class="zn-input" formControlName="name" />
         </app-form-field>
         <app-form-field label="Zenovel Project No." [control]="form.controls.zenovelProjectNo" [required]="true" for="p-zen">
           <input id="p-zen" class="zn-input" formControlName="zenovelProjectNo" placeholder="e.g. ZEN-2501" />
@@ -33,41 +84,8 @@
         <app-form-field label="Sponsor Project No." [control]="form.controls.sponsorProjectNo" for="p-spno">
           <input id="p-spno" class="zn-input" formControlName="sponsorProjectNo" />
         </app-form-field>
-        <app-form-field label="Project Status" [control]="form.controls.status" [required]="true" for="p-status">
-          <select id="p-status" class="zn-input" formControlName="status">
-            @for (s of statuses; track s) {
-              <option [value]="s">{{ s }}</option>
-            }
-          </select>
-        </app-form-field>
         <app-form-field class="md:col-span-2 xl:col-span-3" label="Project Title / Protocol Title" [control]="form.controls.protocolTitle" [required]="true" for="p-title">
           <input id="p-title" class="zn-input" formControlName="protocolTitle" />
-        </app-form-field>
-      </div>
-    </section>
-
-    <section class="zn-surface p-4 md:p-5">
-      <h2 class="zn-section-title mb-3">Study &amp; timeline</h2>
-      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <app-form-field label="Study Type" [control]="form.controls.studyType" [required]="true" for="p-type">
-          <select id="p-type" class="zn-input" formControlName="studyType">
-            @for (s of studyTypes; track s) {
-              <option [value]="s">{{ s }}</option>
-            }
-          </select>
-        </app-form-field>
-        <app-form-field label="Type of Study (blinding)" [control]="form.controls.blinding" [required]="true" hint="Determines monitor duties in Training & Delegation" for="p-blind">
-          <select id="p-blind" class="zn-input" formControlName="blinding">
-            @for (b of blindings; track b) {
-              <option [value]="b">{{ b }}</option>
-            }
-          </select>
-        </app-form-field>
-        <app-form-field label="Project Start Date" [control]="form.controls.startDate" [required]="true">
-          <app-date-picker formControlName="startDate" ariaLabel="Project start date" />
-        </app-form-field>
-        <app-form-field label="Project End Date" [control]="form.controls.endDate" [required]="true">
-          <app-date-picker formControlName="endDate" [min]="form.controls.startDate.value" ariaLabel="Project end date" />
         </app-form-field>
       </div>
     </section>
@@ -137,13 +155,17 @@
                   <input class="zn-input" type="number" min="1" max="30" formControlName="days" placeholder="Days" />
                 </label>
                 <span class="pb-2 text-xs text-ink-soft">day(s)</span>
-                <button type="button" class="zn-action-btn zn-action-danger" (click)="removeVisit(i)" [attr.aria-label]="'Remove visit ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
+                @if (!isDetails()) {
+                  <button type="button" class="zn-action-btn zn-action-danger" (click)="removeVisit(i)" [attr.aria-label]="'Remove visit ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
+                }
               </div>
               @if (v.controls.days.invalid && v.controls.days.touched) {
                 <p class="text-xs text-danger">Days must be between 1 and 30.</p>
               }
             }
-            <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="addVisit()"><svg lucideIcon="plus" [size]="14" /> Add visit</button>
+            @if (!isDetails()) {
+              <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="addVisit()"><svg lucideIcon="plus" [size]="14" /> Add visit</button>
+            }
           </div>
         </fieldset>
         <fieldset class="zn-fieldset space-y-3">
@@ -162,23 +184,6 @@
             </app-form-field>
           </div>
         </fieldset>
-      </div>
-    </section>
-
-    <section class="zn-surface p-4 md:p-5">
-      <h2 class="zn-section-title mb-3">Description, notes &amp; protocol</h2>
-      <div class="grid gap-3 lg:grid-cols-2">
-        <div class="space-y-3">
-          <app-form-field label="Description" [control]="form.controls.description" for="p-desc">
-            <textarea id="p-desc" class="zn-input" rows="3" formControlName="description"></textarea>
-          </app-form-field>
-          <app-form-field label="Notes" [control]="form.controls.notes" for="p-notes">
-            <textarea id="p-notes" class="zn-input" rows="3" formControlName="notes"></textarea>
-          </app-form-field>
-        </div>
-        <app-form-field label="Protocol document" hint="Prototype stores file name and size only — the file itself is not uploaded.">
-          <app-file-upload formControlName="protocolDocument" label="Upload protocol (PDF/DOC)" />
-        </app-form-field>
       </div>
     </section>
 

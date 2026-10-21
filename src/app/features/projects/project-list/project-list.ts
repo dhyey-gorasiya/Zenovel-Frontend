@@ -64,6 +64,7 @@ export class ProjectList {
   protected readonly actions: TableAction<Project>[] = [
     { label: 'View', icon: 'view', onClick: p => this.router.navigate(['/projects', p.id]) },
     { label: 'Edit', icon: 'edit', show: () => this.roles.can('project.manage'), onClick: p => this.router.navigate(['/projects', p.id, 'edit']) },
+    { label: 'Complete details', icon: 'edit', show: () => this.roles.can('project.completeDetails'), onClick: p => this.router.navigate(['/projects', p.id, 'details']) },
     { label: 'Delete', icon: 'delete', show: () => this.roles.can('project.manage'), onClick: p => this.ui.delete(p) },
   ];
 

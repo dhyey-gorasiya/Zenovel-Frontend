@@ -3,6 +3,7 @@ import { Role } from '../models';
 export const PERMISSIONS = [
   { key: 'project.view', label: 'View projects', group: 'Projects' },
   { key: 'project.manage', label: 'Create / edit / delete projects', group: 'Projects' },
+  { key: 'project.completeDetails', label: 'Complete project details (assigned PM)', group: 'Projects' },
   { key: 'plan.view', label: 'View monitoring plans', group: 'Monitoring Plans' },
   { key: 'plan.manage', label: 'Create / edit / delete plans', group: 'Monitoring Plans' },
   { key: 'plan.pmReview', label: 'PM review and final save', group: 'Monitoring Plans' },
@@ -33,7 +34,7 @@ export const ROLES: Role[] = ['Project Manager', 'Monitor', 'HOD/VP', 'Sponsor']
  */
 export const DEFAULT_PERMISSIONS: Record<Role, Permission[]> = {
   'Project Manager': [
-    'project.view', 'project.manage',
+    'project.view', 'project.completeDetails',
     'plan.view', 'plan.manage', 'plan.pmReview', 'plan.sendToSponsor',
     'delegation.view', 'delegation.manage', 'delegation.requestAuthorization',
     'assignment.view', 'assignment.manage', 'assignment.acknowledge',
@@ -46,7 +47,7 @@ export const DEFAULT_PERMISSIONS: Record<Role, Permission[]> = {
     'report.view', 'report.prepare',
   ],
   'HOD/VP': [
-    'project.view', 'plan.view', 'plan.hodApprove',
+    'project.view', 'project.manage', 'plan.view', 'plan.hodApprove',
     'delegation.view', 'delegation.authorize',
     'assignment.view', 'report.view',
   ],

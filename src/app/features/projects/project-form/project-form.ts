@@ -19,6 +19,12 @@ import { emailValidator, rangeValidator } from '../../../shared/validators';
 
 type VisitGroup = FormGroup<{ visitType: FormControl<string>; days: FormControl<number> }>;
 
+/** `setup`: HOD/VP creates or edits the "Project Details" sheet fields. `details`: the assigned PM completes the remaining fields. */
+export type ProjectFormMode = 'setup' | 'details';
+
+const SETUP_FIELDS = ['zenovelProjectNo', 'protocolNo', 'sponsorProjectNo', 'protocolTitle', 'sponsor', 'cro', 'projectManagerId', 'backupProjectManagerId', 'scope'] as const;
+const DETAILS_FIELDS = ['name', 'status', 'studyType', 'blinding', 'startDate', 'endDate', 'description', 'notes', 'protocolDocument'] as const;
+
 @Component({
   imports: [ReactiveFormsModule, RouterLink, Icon, FormField, DatePicker, FileUpload, SearchableSelect, PageHeader, ErrorState],
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -36,6 +42,9 @@ export class ProjectForm {
 
   /** Route param (`/projects/:id/edit`). */
   readonly id = input<string>();
+  /** Route data (`/projects/:id/details`); absent on create and HOD/VP edit. */
+  readonly mode = input<ProjectFormMode>();
+  protected readonly isDetails = computed(() => this.mode() === 'details');
 
   protected readonly studyTypes = STUDY_TYPES;
   protected readonly blindings = BLINDING_TYPES;
@@ -99,10 +108,12 @@ export class ProjectForm {
   }
 
   private get draftKey(): string {
-    return `project-${this.id() ?? 'new'}`;
+    return this.isDetails() ? `project-details-${this.id()}` : `project-${this.id() ?? 'new'}`;
   }
 
   ngOnInit(): void {
+    const locked = this.isDetails() ? SETUP_FIELDS : DETAILS_FIELDS;
+    locked.forEach(key => this.form.controls[key].disable({ emitEvent: false }));
     const id = this.id();
     if (id) {
       const p = this.projects.getVisible(id);
@@ -166,6 +177,7 @@ export class ProjectForm {
     }
     const input: ProjectInput = {
       ...v,
+      name: v.name.trim() || v.zenovelProjectNo,
       sponsor: v.sponsor as PartyDetails,
       cro: v.cro as PartyDetails,
       scope: { ...v.scope, visits: v.scope.visits.map(x => ({ visitType: x.visitType, days: Number(x.days) })) },

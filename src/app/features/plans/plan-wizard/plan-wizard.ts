@@ -4,7 +4,7 @@ import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, Reacti
 import { Router } from '@angular/router';
 import { startWith } from 'rxjs';
 import { COMMUNICATION_CHANNELS, RESPONSIBLE_ROLES, RISK_CATEGORIES, RISK_SCALE, ZENOVEL_SOPS } from '../../../core/config/domain.config';
-import { CommunicationChannel, FileMeta, MonitoringPlan, PlanVisit, PlanVisitType, ProtocolSummaryItem, RiskItem } from '../../../core/models';
+import { CommunicationChannel, CommunicationContact, FileMeta, MonitoringPlan, PlanVisit, PlanVisitType, ProtocolSummaryItem, RiskItem, SessionUser } from '../../../core/models';
 import { AiContext } from '../../../core/services/ai-assist.service';
 import { DataStore } from '../../../core/data/data-store.service';
 import { FormDraftService } from '../../../core/services/form-draft.service';
@@ -16,7 +16,7 @@ import { Icon } from '../../../shared/icons';
 import { DatePicker } from '../../../shared/ui/date-picker';
 import { FileUpload } from '../../../shared/ui/file-upload';
 import { FormField } from '../../../shared/ui/form-field';
-import { SearchableSelect } from '../../../shared/ui/searchable-select';
+import { SearchableSelect, SelectOption } from '../../../shared/ui/searchable-select';
 import { ErrorState } from '../../../shared/ui/states';
 import { StatusBadge } from '../../../shared/ui/status-badge';
 import { Step, Stepper } from '../../../shared/ui/stepper';
@@ -33,7 +33,7 @@ type RiskGroup = FormGroup<{
 }>;
 type VisitPlanGroup = FormGroup<{ visitType: FC<string>; days: FC<number>; applicable: FC<boolean>; comments: FC<string> }>;
 type VisitTypeGroup = FormGroup<{ visitType: FC<string>; applicable: FC<boolean>; checkpoints: FC<string> }>;
-type ContactGroup = FormGroup<{ channel: FC<CommunicationChannel>; name: FC<string>; details: FC<string> }>;
+type ContactGroup = FormGroup<{ channel: FC<CommunicationChannel>; userId: FC<string>; name: FC<string>; details: FC<string> }>;
 
 const onsiteOrRemote = (g: AbstractControl): ValidationErrors | null =>
   g.get('onsite')?.value || g.get('remote')?.value ? null : { mode: 'Select onsite and/or remote monitoring.' };
@@ -141,6 +141,18 @@ export class PlanWizard {
     return STEP_LABELS.map((label, i) => ({ label, invalid: invalid.includes(i) }));
   });
   protected readonly liveExisting = computed(() => (this.existing() ? this.plans.get(this.existing()!.id) : undefined));
+  /** Sponsor contacts are entered manually, so the Sponsor channel has no picker options. */
+  protected readonly contactOptions = computed<Record<CommunicationChannel, SelectOption[]>>(() => {
+    const toOptions = (list: SessionUser[]) => list.map(u => ({ value: u.id, label: u.name, hint: u.email }));
+    const managers = toOptions(this.users.managers());
+    return {
+      'Zenovel CRA': toOptions(this.users.monitors()),
+      'Zenovel Project Manager': managers,
+      'Zenovel Back Up Project Manager': managers,
+      'Zenovel Management': toOptions(this.users.approvers()),
+      Sponsor: [],
+    };
+  });
 
   get summary(): FormArray<SummaryGroup> { return this.form.controls.details.controls.protocolSummary; }
   get risks(): FormArray<RiskGroup> { return this.form.controls.risk.controls.risks; }
@@ -328,8 +340,15 @@ export class PlanWizard {
     if (!d.protocolDocument.value && project.protocolDocument) d.protocolDocument.setValue(project.protocolDocument);
     if (!s.scopeOfWork.value && project.scope.monitoringDetails) s.scopeOfWork.setValue(project.scope.monitoringDetails);
     if (!this.contacts.length) {
-      this.contacts.push(this.contactGroup({ channel: 'Zenovel Project Manager', name: this.users.name(project.projectManagerId), details: this.users.email(project.projectManagerId) }));
-      this.contacts.push(this.contactGroup({ channel: 'Sponsor', name: project.sponsor.contactPerson || project.sponsor.name, details: project.sponsor.email }));
+      const person = (channel: CommunicationChannel, userId = '') => ({ channel, userId, name: userId ? this.users.name(userId) : '', details: this.users.email(userId) });
+      const defaults = [
+        person('Zenovel CRA'),
+        person('Zenovel Project Manager', project.projectManagerId),
+        ...(project.backupProjectManagerId ? [person('Zenovel Back Up Project Manager', project.backupProjectManagerId)] : []),
+        person('Zenovel Management'),
+        { channel: 'Sponsor' as const, name: project.sponsor.contactPerson || project.sponsor.name, details: project.sponsor.email },
+      ];
+      defaults.forEach(c => this.contacts.push(this.contactGroup(c)));
     }
   }
 
@@ -354,6 +373,7 @@ export class PlanWizard {
       ...details,
       ...v.strategy,
       ...v.reporting,
+      contacts: v.reporting.contacts.map(({ userId: _userId, ...c }) => c),
       protocolSummary,
       risks: v.risk.risks.map(r => ({ ...r, severity: Number(r.severity), likelihood: Number(r.likelihood), detectability: Number(r.detectability) })),
     };
@@ -383,7 +403,14 @@ export class PlanWizard {
     return this.fb.nonNullable.group({ visitType: [v.visitType], applicable: [v.applicable], checkpoints: [v.checkpoints] });
   }
 
-  private contactGroup(c: { channel: CommunicationChannel; name: string; details: string }): ContactGroup {
-    return this.fb.nonNullable.group({ channel: [c.channel], name: [c.name, Validators.required], details: [c.details] });
+  private contactGroup(c: CommunicationContact & { userId?: string }): ContactGroup {
+    const userId = c.userId ?? this.contactOptions()[c.channel]?.find(o => o.label === c.name)?.value ?? '';
+    const g = this.fb.nonNullable.group({ channel: [c.channel], userId: [userId], name: [c.name, Validators.required], details: [c.details] });
+    g.controls.channel.valueChanges.subscribe(() => g.controls.userId.setValue('', { emitEvent: false }));
+    g.controls.userId.valueChanges.subscribe(id => {
+      const u = this.users.get(id);
+      if (u) g.patchValue({ name: u.name, details: u.email });
+    });
+    return g;
   }
 }

@@ -9,6 +9,9 @@
     </div>
     <div class="flex flex-wrap gap-2">
       <a routerLink="/projects" class="zn-btn zn-btn-ghost"><svg lucideIcon="arrow-left" [size]="16" /> Projects</a>
+      @if (roles.can('project.completeDetails')) {
+        <a [routerLink]="['/projects', p.id, 'details']" class="zn-btn zn-btn-ghost"><svg lucideIcon="pencil" [size]="16" /> Complete details</a>
+      }
       @if (roles.can('project.manage')) {
         <a [routerLink]="['/projects', p.id, 'edit']" class="zn-btn zn-btn-ghost"><svg lucideIcon="pencil" [size]="16" /> Edit</a>
         <button type="button" class="zn-btn zn-btn-danger" (click)="remove()"><svg lucideIcon="trash" [size]="16" /> Delete</button>
@@ -31,8 +34,8 @@
             <div><dt>Sponsor Project No.</dt><dd>{{ p.sponsorProjectNo || '—' }}</dd></div>
             <div><dt>Study Type</dt><dd>{{ p.studyType }}</dd></div>
             <div><dt>Type of Study</dt><dd>{{ p.blinding }}</dd></div>
-            <div><dt>Start Date</dt><dd>{{ p.startDate | date: 'dd MMM yyyy' }}</dd></div>
-            <div><dt>End Date</dt><dd>{{ p.endDate | date: 'dd MMM yyyy' }}</dd></div>
+            <div><dt>Start Date</dt><dd>{{ (p.startDate | date: 'dd MMM yyyy') || '—' }}</dd></div>
+            <div><dt>End Date</dt><dd>{{ (p.endDate | date: 'dd MMM yyyy') || '—' }}</dd></div>
             <div><dt>Project Manager</dt><dd>{{ users.name(p.projectManagerId) }}</dd></div>
             <div><dt>Back-up PM</dt><dd>{{ users.name(p.backupProjectManagerId) }}</dd></div>
             <div><dt>Last Updated</dt><dd>{{ p.updatedAt | date: 'dd MMM yyyy, HH:mm' }}</dd></div>
