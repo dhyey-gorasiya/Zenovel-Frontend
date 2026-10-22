@@ -103,8 +103,13 @@ export interface Project extends Entity {
 
 /* ---------- Monitoring Plans ---------- */
 
-export type PlanStatus = 'Draft' | 'In PM Review' | 'Pending HOD Approval' | 'HOD Approved' | 'Rejected' | 'Approved';
-export type SponsorReviewStatus = 'Not Submitted' | 'Pending' | 'Changes Requested' | 'Approved';
+/**
+ * 'HOD Approved' = HOD signed on the Direct Sign route and the sponsor signature is pending.
+ * Plans persisted before this workflow may also carry it with any sponsor review state.
+ */
+export type PlanStatus = 'Draft' | 'In PM Review' | 'Final Saved' | 'Pending HOD Approval' | 'HOD Approved' | 'Rejected' | 'Approved';
+/** 'Direct Sign' marks the Direct Sign route (no sponsor comment loop) until the sponsor signs. */
+export type SponsorReviewStatus = 'Not Submitted' | 'Pending' | 'Changes Requested' | 'Approved' | 'Direct Sign';
 
 export interface PlanVisit {
   visitType: string;

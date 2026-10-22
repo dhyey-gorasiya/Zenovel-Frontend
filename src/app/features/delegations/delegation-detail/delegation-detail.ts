@@ -3,8 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { DemoRoleService } from '../../../core/auth/demo-role.service';
-import { isBlindedDuty, isUnblindedDuty } from '../../../core/config/domain.config';
-import { Acknowledgement } from '../../../core/models';
+import { BLINDING_DESCRIPTIONS, BLINDING_TYPES, DUTY_GROUPS, isBlindedDuty, isUnblindedDuty } from '../../../core/config/domain.config';
+import { Acknowledgement, MonitorDuty } from '../../../core/models';
 import { DelegationService } from '../../../core/services/delegation.service';
 import { DialogService } from '../../../core/services/dialog.service';
 import { EmailService } from '../../../core/services/email.service';
@@ -13,12 +13,14 @@ import { ProjectService } from '../../../core/services/project.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UserDirectoryService } from '../../../core/services/user-directory.service';
 import { Icon } from '../../../shared/icons';
+import { PartyDetails } from '../../../shared/ui/party-details';
+import { SheetRow } from '../../../shared/ui/sheet-row';
 import { ErrorState } from '../../../shared/ui/states';
 import { StatusBadge } from '../../../shared/ui/status-badge';
 import { ActivityTimeline } from '../../../shared/ui/timeline';
 
 @Component({
-  imports: [RouterLink, Icon, StatusBadge, ErrorState, ActivityTimeline, DatePipe],
+  imports: [RouterLink, Icon, StatusBadge, ErrorState, ActivityTimeline, DatePipe, SheetRow, PartyDetails],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './delegation-detail.html',
 })
@@ -38,9 +40,14 @@ export class DelegationDetail {
   protected readonly authorizeChecked = signal(false);
   protected readonly isBlinded = isBlindedDuty;
   protected readonly isUnblinded = isUnblindedDuty;
+  protected readonly blindingTypes = BLINDING_TYPES;
+  protected readonly blindingDescriptions = BLINDING_DESCRIPTIONS;
+  protected readonly dutyGroups = DUTY_GROUPS;
 
   protected readonly delegation = computed(() => this.delegations.getVisible(this.id()));
   protected readonly project = computed(() => this.projects.get(this.delegation()?.projectId));
+  protected readonly plan = computed(() => this.plans.get(this.delegation()?.planId));
+  protected readonly duties = computed<MonitorDuty[]>(() => (this.project() ? this.delegations.dutiesFor(this.project()!.blinding) : []));
   protected readonly progress = computed(() => (this.delegation() ? this.delegations.progress(this.delegation()!) : null));
   protected readonly unsent = computed(() => (this.delegation() ? this.delegations.unsentMonitorIds(this.delegation()!) : []));
   protected readonly myAck = computed(() => (this.delegation() && this.roles.can('delegation.acknowledge') ? this.delegations.myAcknowledgement(this.delegation()!) : undefined));

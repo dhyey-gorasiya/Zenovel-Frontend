@@ -1,4 +1,6 @@
 @if (delegation(); as d) {
+  @let p = project();
+  @let mp = plan();
   <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start">
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center gap-2">
@@ -8,7 +10,7 @@
       <p class="mt-1 text-sm text-ink-soft">
         <a [routerLink]="['/projects', d.projectId]" class="text-accent hover:underline">{{ projects.name(d.projectId) }}</a> ·
         plan <a [routerLink]="['/plans', d.planId]" class="text-accent hover:underline">{{ plans.label(d.planId) }}</a> ·
-        {{ project()?.blinding }} {{ project()?.studyType }}
+        {{ p?.blinding }} {{ p?.studyType }} · Responsibility: Project Manager
       </p>
     </div>
     <div class="flex flex-wrap gap-2">
@@ -33,9 +35,112 @@
 
   <div class="grid gap-4 xl:grid-cols-[1fr_24rem]">
     <div class="space-y-4">
+      <section class="zn-surface overflow-hidden">
+        <div class="zn-card-head">
+          <div>
+            <h2 class="zn-section-title">Training and Delegation</h2>
+            <p class="text-xs text-ink-soft">Responsibility: Project Manager</p>
+          </div>
+        </div>
+        <app-sheet-row label="Project Title / Protocol Title" source="project">{{ p ? p.name + ' — ' + p.protocolTitle : '—' }}</app-sheet-row>
+        <app-sheet-row label="CRO Project No. / Protocol No." source="project">{{ p?.protocolNo || '—' }}</app-sheet-row>
+        <app-sheet-row label="CRO Project No. / Protocol Version No.; Date" source="manual">{{ d.protocolVersionDetails || '—' }}</app-sheet-row>
+        <app-sheet-row label="Sponsor Project No." source="project">{{ p?.sponsorProjectNo || '—' }}</app-sheet-row>
+        <app-sheet-row label="CRO Details" source="project"><app-party-details [party]="p?.cro" /></app-sheet-row>
+        <app-sheet-row label="Sponsor Details" source="project"><app-party-details [party]="p?.sponsor" /></app-sheet-row>
+        <app-sheet-row label="Zenovel Project No." source="project">{{ p?.zenovelProjectNo || '—' }}</app-sheet-row>
+        <app-sheet-row label="Type of Study" source="project">
+          <div class="grid gap-2 sm:grid-cols-2">
+            @for (t of blindingTypes; track t) {
+              <div class="rounded-lg border p-2.5" [class]="p?.blinding === t ? 'border-accent bg-accent-soft' : 'border-line opacity-70'">
+                <p class="flex items-center gap-1.5 font-medium">
+                  {{ t }}
+                  @if (p?.blinding === t) { <span class="zn-badge zn-badge-ok">Selected</span> }
+                </p>
+                <p class="mt-0.5 text-xs text-ink-soft">{{ blindingDescriptions[t] }}</p>
+              </div>
+            }
+          </div>
+          @if (p) { <p class="mt-1 text-xs text-ink-soft">Study type: {{ p.studyType }}</p> }
+        </app-sheet-row>
+        <app-sheet-row label="Monitoring Plan Version No. and Date" source="plan">
+          @if (mp) { {{ mp.id }} · v{{ mp.version }} · {{ mp.updatedAt | date: 'dd MMM yyyy' }} } @else { {{ plans.label(d.planId) }} }
+        </app-sheet-row>
+        <app-sheet-row label="Monitoring Plan Meeting Date" source="manual">{{ d.meetingDate | date: 'dd MMM yyyy' }}</app-sheet-row>
+        <app-sheet-row label="Monitoring Plan Meeting Start Time" source="manual">{{ d.startTime || '—' }}</app-sheet-row>
+        <app-sheet-row label="Monitoring Plan Meeting End Time" source="manual">{{ d.endTime || '—' }}</app-sheet-row>
+      </section>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        @for (grp of [{ title: 'Attendees', list: d.attendees }, { title: 'Discussion Conducted By', list: d.conductedBy }]; track grp.title) {
+          <section class="zn-surface p-4">
+            <h2 class="zn-section-title mb-2">{{ grp.title }}</h2>
+            <ul class="space-y-1.5 text-sm">
+              @for (x of grp.list; track $index) {
+                <li class="flex items-start gap-2">
+                  <svg lucideIcon="circle-check" [size]="15" class="mt-0.5 shrink-0 text-ok" />
+                  <span><span class="font-medium">{{ x.name }}</span>@if (x.details) {<span class="text-xs text-ink-soft"> · {{ x.details }}</span>}</span>
+                </li>
+              } @empty {
+                <li class="text-ink-soft">None recorded.</li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+
+      <section class="zn-surface">
+        <div class="zn-card-head"><h2 class="zn-section-title">Delegation of Monitor(s)</h2></div>
+        @if (p) { <p class="px-4 pt-3 text-xs text-ink-soft">{{ blindingDescriptions[p.blinding] }}</p> }
+        <div class="zn-table-scroll p-4">
+          <table class="zn-table rounded-lg border border-line">
+            <thead>
+              <tr>
+                <th rowspan="2">Name of Monitor</th>
+                @for (g of dutyGroups; track g.label) {
+                  <th class="text-center" [attr.colspan]="g.duties.length" [class.opacity-50]="p?.blinding !== g.blinding">{{ g.label }}</th>
+                }
+              </tr>
+              <tr>
+                @for (g of dutyGroups; track g.label) {
+                  @for (duty of g.duties; track duty) {
+                    <th class="text-center" [class.opacity-50]="!duties().includes(duty)" [class.bg-warn-soft]="isUnblinded(duty)" [class.bg-info-soft]="isBlinded(duty)">{{ duty }}</th>
+                  }
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of d.acknowledgements; track a.monitorId) {
+                <tr>
+                  <td><span class="font-medium">{{ users.name(a.monitorId) }}</span><br /><span class="text-xs text-ink-soft">{{ users.email(a.monitorId) }}</span></td>
+                  @for (g of dutyGroups; track g.label) {
+                    @for (duty of g.duties; track duty) {
+                      <td class="text-center">
+                        @if (!duties().includes(duty)) {
+                          <span class="text-xs text-ink-soft">N/A</span>
+                        } @else if (a.duties.includes(duty)) {
+                          <svg lucideIcon="circle-check" [size]="16" class="inline text-ok" [attr.aria-label]="duty + ' delegated'" />
+                        } @else {
+                          <span class="text-ink-soft">—</span>
+                        }
+                      </td>
+                    }
+                  }
+                </tr>
+              } @empty {
+                <tr><td colspan="7" class="py-6 text-center text-ink-soft">No monitors delegated.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="border-t border-line px-4 py-3 text-xs text-ink-soft">
+          Once the Project Manager delegates monitoring responsibilities, an email notification is sent to each assigned monitor. Each monitor acknowledges the delegation by clicking the acknowledgement link in the email or through login to this module, and completing an electronic signature.
+        </p>
+      </section>
+
       <section class="zn-surface">
         <div class="zn-card-head">
-          <h2 class="zn-section-title">Delegated monitors &amp; acknowledgements</h2>
+          <h2 class="zn-section-title">Delegated Monitor Acknowledgement</h2>
           @if (progress(); as pr) {
             <span class="text-sm font-semibold">{{ pr.acknowledged }}/{{ pr.total }} acknowledged</span>
           }
@@ -50,16 +155,16 @@
         }
         <div class="zn-table-scroll p-4">
           <table class="zn-table rounded-lg border border-line">
-            <thead><tr><th>Duty</th><th>Monitor</th><th>Status</th><th>Notified</th><th>Responded</th><th>Signature (simulated)</th><th></th></tr></thead>
+            <thead><tr><th>Name of Monitor</th><th>Duty</th><th>Status</th><th>Notified</th><th>Responded</th><th>Electronic signature (simulated)</th><th></th></tr></thead>
             <tbody>
               @for (a of d.acknowledgements; track a.monitorId) {
                 <tr>
+                  <td><span class="font-medium">{{ users.name(a.monitorId) }}</span><br /><span class="text-xs text-ink-soft">{{ users.email(a.monitorId) }}</span></td>
                   <td>
                     @for (duty of a.duties; track duty) {
                       <span class="zn-badge mb-0.5 mr-1" [class]="isUnblinded(duty) ? 'zn-badge-warn' : isBlinded(duty) ? 'zn-badge-info' : 'zn-badge-muted'">{{ duty }}</span>
                     }
                   </td>
-                  <td><span class="font-medium">{{ users.name(a.monitorId) }}</span><br /><span class="text-xs text-ink-soft">{{ users.email(a.monitorId) }}</span></td>
                   <td><app-status-badge [status]="a.state" />@if (a.declineReason) {<p class="mt-1 text-xs text-danger">{{ a.declineReason }}</p>}</td>
                   <td class="text-xs text-ink-soft">{{ a.notifiedAt ? (a.notifiedAt | date: 'dd MMM yyyy, HH:mm') : '—' }}</td>
                   <td class="text-xs text-ink-soft">{{ a.respondedAt ? (a.respondedAt | date: 'dd MMM yyyy, HH:mm') : '—' }}</td>
@@ -87,28 +192,28 @@
             }
           </div>
         }
+        <p class="border-t border-line px-4 py-3 text-xs text-ink-soft">
+          Once all delegated monitors have acknowledged the delegation and completed their electronic signatures, the Project Manager (PM) who conducted the discussion receives an automated email confirming that all acknowledgements are complete. The PM then initiates authorization by selecting the checkbox.
+        </p>
       </section>
 
-      <section class="zn-surface p-4">
-        <h2 class="zn-section-title mb-3">Meeting &amp; training details</h2>
-        <dl class="zn-kv">
-          <div><dt>Meeting date</dt><dd>{{ d.meetingDate | date: 'dd MMM yyyy' }}</dd></div>
-          <div><dt>Time</dt><dd>{{ d.startTime }} – {{ d.endTime }}</dd></div>
-          <div><dt>Protocol version / amendments</dt><dd>{{ d.protocolVersionDetails || '—' }}</dd></div>
-          <div><dt>Monitoring plan</dt><dd>{{ plans.label(d.planId) }}</dd></div>
-          <div class="col-span-full"><dt>Attendees</dt><dd>@for (x of d.attendees; track $index; let last = $last) {{{ x.name }}@if (x.details) { ({{ x.details }})}@if (!last) {, }} @empty { — }</dd></div>
-          <div class="col-span-full"><dt>Discussion conducted by</dt><dd>@for (x of d.conductedBy; track $index; let last = $last) {{{ x.name }}@if (x.details) { ({{ x.details }})}@if (!last) {, }} @empty { — }</dd></div>
-          <div class="col-span-full"><dt>Discussion details</dt><dd class="whitespace-pre-line">{{ d.discussionDetails || '—' }}</dd></div>
-          <div class="col-span-full"><dt>Delegated responsibilities</dt><dd class="whitespace-pre-line">{{ d.delegatedResponsibilities || '—' }}</dd></div>
-          @if (d.notes) { <div class="col-span-full"><dt>Notes</dt><dd class="whitespace-pre-line">{{ d.notes }}</dd></div> }
-        </dl>
-      </section>
+      @if (d.discussionDetails || d.delegatedResponsibilities || d.notes) {
+        <section class="zn-surface p-4">
+          <h2 class="zn-section-title mb-3">Additional details</h2>
+          <dl class="zn-kv">
+            @if (d.discussionDetails) { <div class="col-span-full"><dt>Discussion details</dt><dd class="whitespace-pre-line">{{ d.discussionDetails }}</dd></div> }
+            @if (d.delegatedResponsibilities) { <div class="col-span-full"><dt>Delegated responsibilities</dt><dd class="whitespace-pre-line">{{ d.delegatedResponsibilities }}</dd></div> }
+            @if (d.notes) { <div class="col-span-full"><dt>Notes</dt><dd class="whitespace-pre-line">{{ d.notes }}</dd></div> }
+          </dl>
+        </section>
+      }
     </div>
 
     <div class="space-y-4">
       <section class="zn-surface">
-        <div class="zn-card-head"><h2 class="zn-section-title">Delegated monitor authorization</h2></div>
+        <div class="zn-card-head"><h2 class="zn-section-title">Delegated Monitor Authorization</h2></div>
         <div class="space-y-3 p-4 text-sm">
+          <p class="text-xs text-ink-soft">Head of Department / VP authorizes by clicking the acknowledgement link in the email or through login to this module, and completing an electronic signature.</p>
           <div class="flex items-center justify-between"><span class="zn-label">Status</span><app-status-badge [status]="d.authorization" /></div>
           @if (d.authorizationRequestedAt) {
             <p class="text-xs text-ink-soft">Requested {{ d.authorizationRequestedAt | date: 'dd MMM yyyy, HH:mm' }}</p>

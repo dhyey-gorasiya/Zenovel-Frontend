@@ -104,9 +104,13 @@
       <app-data-table [columns]="planColumns" [rows]="relatedPlans()" emptyMessage="No monitoring plans for this project." />
     }
     @case ('delegations') {
-      <div class="mb-3 flex justify-end">
+      <div class="mb-3 flex items-center justify-end gap-3">
         @if (roles.can('delegation.manage')) {
-          <a routerLink="/delegations/new" [queryParams]="{ projectId: p.id }" class="zn-btn zn-btn-primary zn-btn-sm"><svg lucideIcon="plus" [size]="14" /> New Delegation Record</a>
+          @if (delegationUnlocked()) {
+            <a routerLink="/delegations/new" [queryParams]="{ projectId: p.id }" class="zn-btn zn-btn-primary zn-btn-sm"><svg lucideIcon="plus" [size]="14" /> New Delegation Record</a>
+          } @else {
+            <span class="text-xs text-ink-soft">Training &amp; Delegation unlocks once a monitoring plan for this project is finally approved.</span>
+          }
         }
       </div>
       <app-data-table [columns]="delegationColumns" [rows]="relatedDelegations()" emptyMessage="No delegation records for this project." />

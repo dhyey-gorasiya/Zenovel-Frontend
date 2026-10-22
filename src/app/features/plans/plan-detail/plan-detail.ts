@@ -31,6 +31,7 @@ export class PlanDetail {
   protected readonly plan = computed(() => this.plans.getVisible(this.id()));
   protected readonly actions = computed(() => (this.plan() ? this.plans.actions(this.plan()!) : { edit: false, delete: false }));
   protected readonly delegations = computed(() => this.delegationService.visible().filter(d => d.planId === this.id()));
+  protected readonly delegationUnlocked = computed(() => this.plans.isFinallyApproved(this.plan()));
   protected readonly assignments = computed(() => this.assignmentService.visible().filter(a => a.planId === this.id()));
 
   async remove(): Promise<void> {

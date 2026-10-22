@@ -6,6 +6,8 @@ import { DUTIES_BY_BLINDING, REQUIRED_DUTIES } from '../config/domain.config';
 import { DataStore } from '../data/data-store.service';
 import { Acknowledgement, Blinding, DelegatedMonitor, Delegation, MonitorDuty, SimSignature } from '../models';
 import { ActivityService } from './activity.service';
+import { EmailService } from './email.service';
+import { MonitoringPlanService } from './monitoring-plan.service';
 import { NotificationService } from './notification.service';
 import { UserDirectoryService } from './user-directory.service';
 
@@ -44,6 +46,8 @@ export class DelegationService {
   private readonly activity = inject(ActivityService);
   private readonly notifications = inject(NotificationService);
   private readonly users = inject(UserDirectoryService);
+  private readonly email = inject(EmailService);
+  private readonly plans = inject(MonitoringPlanService);
 
   readonly visible = computed(() => this.data.delegations.items().filter(d => this.scope.delegation(d)));
 
@@ -90,7 +94,13 @@ export class DelegationService {
 
   /* ---------- CRUD ---------- */
 
+  /** Training & Delegation starts only once the linked monitoring plan is finally approved. */
+  canStartFor(planId: string | null | undefined): boolean {
+    return this.plans.isFinallyApproved(this.plans.get(planId));
+  }
+
   create(input: DelegationInput): Delegation {
+    if (!this.canStartFor(input.planId)) throw new Error('Training & Delegation can start only after the monitoring plan is finally approved.');
     const u = this.auth.user();
     const now = new Date().toISOString();
     const d = this.data.delegations.insert({
@@ -188,6 +198,19 @@ export class DelegationService {
         message: `${id} (${this.projectName(d.projectId)}) is ready for HOD/VP authorization.`,
         link: `/delegations/${id}`,
       });
+      this.email.send({
+        to: this.pmRecipients(d).map(r => this.users.email(r)),
+        cc: [],
+        subject: `All delegation acknowledgements completed — ${this.projectName(d.projectId)} (${id})`,
+        body:
+          `All delegated monitors have acknowledged ${id} and completed their electronic signatures:\n` +
+          acknowledgements.map(a => `  • ${this.users.name(a.monitorId)} — ${a.duties.join(', ')}`).join('\n') +
+          `\n\nPlease sign in to Zenovel, open ${id} and initiate the HOD/VP authorization.`,
+        projectId: d.projectId,
+        entityType: 'Delegation',
+        entityId: id,
+        link: `/delegations/${id}`,
+      });
     }
   }
 
@@ -228,6 +251,19 @@ export class DelegationService {
       recipientIds: this.users.approvers().map(u => u.id),
       title: 'HOD/VP authorization requested',
       message: `${id} (${this.projectName(d.projectId)}) — all delegated monitors have acknowledged.`,
+      link: `/delegations/${id}`,
+    });
+    this.email.send({
+      to: this.users.approvers().map(u => u.email),
+      cc: [this.auth.user()?.email ?? ''].filter(Boolean),
+      subject: `Delegated monitor authorization requested — ${this.projectName(d.projectId)} (${id})`,
+      body:
+        `All delegated monitors have acknowledged ${id}:\n` +
+        d.acknowledgements.map(a => `  • ${this.users.name(a.monitorId)} — ${a.duties.join(', ')}`).join('\n') +
+        `\n\nPlease sign in to Zenovel, open ${id} and authorize the delegation with your electronic signature.\n\nRegards,\n${this.auth.user()?.name ?? 'System'}`,
+      projectId: d.projectId,
+      entityType: 'Delegation',
+      entityId: id,
       link: `/delegations/${id}`,
     });
   }

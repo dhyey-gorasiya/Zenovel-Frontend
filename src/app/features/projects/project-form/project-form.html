@@ -1,199 +1,221 @@
 @if (notFound()) {
-  <app-error-state title="Project not found" message="This project does not exist or you don't have access to it." backLink="/projects" backLabel="Back to projects" />
+<app-error-state title="Project not found" message="This project does not exist or you don't have access to it."
+  backLink="/projects" backLabel="Back to projects" />
 } @else {
-  <app-page-header [title]="isDetails() ? 'Complete details · ' + (existing()?.name ?? '') : id() ? 'Edit ' + (existing()?.name ?? '') : 'Create Project'"
-    [description]="isDetails() ? 'Fill in the project details assigned to you. Details entered by HOD/VP are shown read-only.'
+<app-page-header
+  [title]="isDetails() ? 'Complete details · ' + (existing()?.name ?? '') : id() ? 'Edit ' + (existing()?.name ?? '') : 'Create Project'"
+  [description]="isDetails() ? 'Fill in the project details assigned to you. Details entered by HOD/VP are shown read-only.'
       : id() ? 'Update project details. Related plans, delegations and reports reference this record by ID.'
       : 'Register the project and assign the Project Manager. The assigned Project Manager completes the remaining details.'">
-    <a [routerLink]="id() ? ['/projects', id()] : '/projects'" class="zn-btn zn-btn-ghost" (click)="$event.preventDefault(); cancel()"><svg lucideIcon="arrow-left" [size]="16" /> Back</a>
-  </app-page-header>
+  <a [routerLink]="id() ? ['/projects', id()] : '/projects'" class="zn-btn zn-btn-ghost"
+    (click)="$event.preventDefault(); cancel()"><svg lucideIcon="arrow-left" [size]="16" /> Back</a>
+</app-page-header>
 
-  @if (restored()) {
-    <div class="zn-notice zn-notice-info mb-3">
-      <svg lucideIcon="info" [size]="16" class="mt-0.5 shrink-0" />
-      <span class="flex-1">Unsaved changes from your previous visit were restored.</span>
-      <button type="button" class="zn-btn-link" (click)="discardDraft()">Discard draft</button>
+@if (restored()) {
+<div class="zn-notice zn-notice-info mb-3">
+  <svg lucideIcon="info" [size]="16" class="mt-0.5 shrink-0" />
+  <span class="flex-1">Unsaved changes from your previous visit were restored.</span>
+  <button type="button" class="zn-btn-link" (click)="discardDraft()">Discard draft</button>
+</div>
+}
+
+<form [formGroup]="form" (ngSubmit)="save()" novalidate class="space-y-4">
+  @if (isDetails()) {
+  <section class="zn-surface p-4 md:p-5">
+    <h2 class="zn-section-title mb-1">Project details</h2>
+    <p class="mb-3 text-xs text-ink-soft">Completed by the assigned Project Manager. The sections below were entered by
+      HOD/VP and are read-only here.</p>
+    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <app-form-field label="Project Name" [control]="form.controls.name" [required]="true"
+        hint="Defaults to the Zenovel Project No." for="p-name">
+        <input id="p-name" class="zn-input" formControlName="name" />
+      </app-form-field>
+      <app-form-field label="Project Status" [control]="form.controls.status" [required]="true" for="p-status">
+        <select id="p-status" class="zn-input" formControlName="status">
+          @for (s of statuses; track s) {
+          <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </app-form-field>
+      <app-form-field label="Study Type" [control]="form.controls.studyType" [required]="true" for="p-type">
+        <select id="p-type" class="zn-input" formControlName="studyType">
+          @for (s of studyTypes; track s) {
+          <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </app-form-field>
+      <app-form-field label="Type of Study (blinding)" [control]="form.controls.blinding" [required]="true"
+        hint="Determines monitor duties in Training & Delegation" for="p-blind">
+        <select id="p-blind" class="zn-input" formControlName="blinding">
+          @for (b of blindings; track b) {
+          <option [value]="b">{{ b }}</option>
+          }
+        </select>
+      </app-form-field>
+      <app-form-field label="Project Start Date" [control]="form.controls.startDate" [required]="true">
+        <app-date-picker formControlName="startDate" ariaLabel="Project start date" />
+      </app-form-field>
+      <app-form-field label="Project End Date" [control]="form.controls.endDate" [required]="true">
+        <app-date-picker formControlName="endDate" [min]="form.controls.startDate.value" ariaLabel="Project end date" />
+      </app-form-field>
     </div>
+    <div class="mt-3 grid gap-3 lg:grid-cols-2">
+      <div class="space-y-3">
+        <app-form-field label="Description" [control]="form.controls.description" for="p-desc">
+          <textarea id="p-desc" class="zn-input" rows="3" formControlName="description"></textarea>
+        </app-form-field>
+        <app-form-field label="Notes" [control]="form.controls.notes" for="p-notes">
+          <textarea id="p-notes" class="zn-input" rows="3" formControlName="notes"></textarea>
+        </app-form-field>
+      </div>
+      <app-form-field label="Protocol document"
+        hint="Prototype stores file name and size only — the file itself is not uploaded.">
+        <app-file-upload formControlName="protocolDocument" label="Upload protocol (PDF/DOC)" />
+      </app-form-field>
+    </div>
+  </section>
   }
 
-  <form [formGroup]="form" (ngSubmit)="save()" novalidate class="space-y-4">
-    @if (isDetails()) {
-      <section class="zn-surface p-4 md:p-5">
-        <h2 class="zn-section-title mb-1">Project details</h2>
-        <p class="mb-3 text-xs text-ink-soft">Completed by the assigned Project Manager. The sections below were entered by HOD/VP and are read-only here.</p>
-        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <app-form-field label="Project Name" [control]="form.controls.name" [required]="true" hint="Defaults to the Zenovel Project No." for="p-name">
-            <input id="p-name" class="zn-input" formControlName="name" />
-          </app-form-field>
-          <app-form-field label="Project Status" [control]="form.controls.status" [required]="true" for="p-status">
-            <select id="p-status" class="zn-input" formControlName="status">
-              @for (s of statuses; track s) {
-                <option [value]="s">{{ s }}</option>
-              }
-            </select>
-          </app-form-field>
-          <app-form-field label="Study Type" [control]="form.controls.studyType" [required]="true" for="p-type">
-            <select id="p-type" class="zn-input" formControlName="studyType">
-              @for (s of studyTypes; track s) {
-                <option [value]="s">{{ s }}</option>
-              }
-            </select>
-          </app-form-field>
-          <app-form-field label="Type of Study (blinding)" [control]="form.controls.blinding" [required]="true" hint="Determines monitor duties in Training & Delegation" for="p-blind">
-            <select id="p-blind" class="zn-input" formControlName="blinding">
-              @for (b of blindings; track b) {
-                <option [value]="b">{{ b }}</option>
-              }
-            </select>
-          </app-form-field>
-          <app-form-field label="Project Start Date" [control]="form.controls.startDate" [required]="true">
-            <app-date-picker formControlName="startDate" ariaLabel="Project start date" />
-          </app-form-field>
-          <app-form-field label="Project End Date" [control]="form.controls.endDate" [required]="true">
-            <app-date-picker formControlName="endDate" [min]="form.controls.startDate.value" ariaLabel="Project end date" />
-          </app-form-field>
-        </div>
-        <div class="mt-3 grid gap-3 lg:grid-cols-2">
-          <div class="space-y-3">
-            <app-form-field label="Description" [control]="form.controls.description" for="p-desc">
-              <textarea id="p-desc" class="zn-input" rows="3" formControlName="description"></textarea>
-            </app-form-field>
-            <app-form-field label="Notes" [control]="form.controls.notes" for="p-notes">
-              <textarea id="p-notes" class="zn-input" rows="3" formControlName="notes"></textarea>
-            </app-form-field>
-          </div>
-          <app-form-field label="Protocol document" hint="Prototype stores file name and size only — the file itself is not uploaded.">
-            <app-file-upload formControlName="protocolDocument" label="Upload protocol (PDF/DOC)" />
-          </app-form-field>
-        </div>
-      </section>
-    }
+  <section class="zn-surface p-4 md:p-5">
+    <h2 class="zn-section-title mb-3">Project identification</h2>
+    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <app-form-field label="Project ID" hint="Generated automatically">
+        <input class="zn-input" [value]="existing()?.id ?? nextId()" readonly />
+      </app-form-field>
+      <app-form-field label="Zenovel Project No." [control]="form.controls.zenovelProjectNo" [required]="true"
+        for="p-zen">
+        <input id="p-zen" class="zn-input" formControlName="zenovelProjectNo" placeholder="e.g. ZEN-2501" />
+      </app-form-field>
+      <app-form-field label="CRO Project No. / Protocol No." [control]="form.controls.protocolNo" [required]="true"
+        for="p-proto">
+        <input id="p-proto" class="zn-input" formControlName="protocolNo" placeholder="e.g. CRO-BE-2501" />
+      </app-form-field>
+      <app-form-field label="Sponsor Project No." [control]="form.controls.sponsorProjectNo" for="p-spno">
+        <input id="p-spno" class="zn-input" formControlName="sponsorProjectNo" />
+      </app-form-field>
+      <app-form-field class="md:col-span-2 xl:col-span-3" label="Project Title / Protocol Title"
+        [control]="form.controls.protocolTitle" [required]="true" for="p-title">
+        <input id="p-title" class="zn-input" formControlName="protocolTitle" />
+      </app-form-field>
+    </div>
+  </section>
 
-    <section class="zn-surface p-4 md:p-5">
-      <h2 class="zn-section-title mb-3">Project identification</h2>
-      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <app-form-field label="Project ID" hint="Generated automatically">
-          <input class="zn-input" [value]="existing()?.id ?? nextId()" readonly />
+  <div class="grid gap-4 lg:grid-cols-2">
+    @for (party of [{ key: 'sponsor', title: 'Sponsor details' }, { key: 'cro', title: 'CRO details' }]; track
+    party.key) {
+    <section class="zn-surface p-4 md:p-5" [formGroupName]="party.key">
+      <h2 class="zn-section-title mb-3">{{ party.title }}</h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <app-form-field label="Organisation name" [control]="form.get(party.key + '.name')" [required]="true">
+          <input class="zn-input" formControlName="name" [attr.aria-label]="party.title + ' name'" />
         </app-form-field>
-        <app-form-field label="Zenovel Project No." [control]="form.controls.zenovelProjectNo" [required]="true" for="p-zen">
-          <input id="p-zen" class="zn-input" formControlName="zenovelProjectNo" placeholder="e.g. ZEN-2501" />
+        <app-form-field label="Contact person" [control]="form.get(party.key + '.contactPerson')">
+          <input class="zn-input" formControlName="contactPerson" [attr.aria-label]="party.title + ' contact person'" />
         </app-form-field>
-        <app-form-field label="CRO Project No. / Protocol No." [control]="form.controls.protocolNo" [required]="true" for="p-proto">
-          <input id="p-proto" class="zn-input" formControlName="protocolNo" placeholder="e.g. CRO-BE-2501" />
+        <app-form-field label="Email" [control]="form.get(party.key + '.email')" [required]="true">
+          <input class="zn-input" type="email" formControlName="email" [attr.aria-label]="party.title + ' email'" />
         </app-form-field>
-        <app-form-field label="Sponsor Project No." [control]="form.controls.sponsorProjectNo" for="p-spno">
-          <input id="p-spno" class="zn-input" formControlName="sponsorProjectNo" />
+        <app-form-field label="Phone" [control]="form.get(party.key + '.phone')">
+          <input class="zn-input" type="tel" formControlName="phone" [attr.aria-label]="party.title + ' phone'" />
         </app-form-field>
-        <app-form-field class="md:col-span-2 xl:col-span-3" label="Project Title / Protocol Title" [control]="form.controls.protocolTitle" [required]="true" for="p-title">
-          <input id="p-title" class="zn-input" formControlName="protocolTitle" />
+        <app-form-field class="sm:col-span-2" label="Address" [control]="form.get(party.key + '.address')">
+          <input class="zn-input" formControlName="address" [attr.aria-label]="party.title + ' address'" />
         </app-form-field>
       </div>
     </section>
+    }
+  </div>
 
+  <section class="zn-surface p-4 md:p-5">
+    <h2 class="zn-section-title mb-3">Project management</h2>
+    <div class="grid gap-3 md:grid-cols-2">
+      <app-form-field label="Project Manager" [control]="form.controls.projectManagerId" [required]="true">
+        <app-searchable-select formControlName="projectManagerId" [options]="managerOptions()"
+          placeholder="Select project manager" />
+      </app-form-field>
+      <app-form-field label="Back-up Project Manager" [control]="form.controls.backupProjectManagerId" hint="Optional">
+        <app-searchable-select formControlName="backupProjectManagerId" [options]="managerOptions()"
+          placeholder="None" />
+      </app-form-field>
+    </div>
+  </section>
+
+  <section class="zn-surface p-4 md:p-5" formGroupName="scope">
+    <h2 class="zn-section-title mb-1">Scope of work</h2>
+    <p class="mb-3 text-xs text-ink-soft">Tick the applicable scope and enter details (from the "Project Details"
+      section of the requirements).</p>
     <div class="grid gap-4 lg:grid-cols-2">
-      @for (party of [{ key: 'sponsor', title: 'Sponsor details' }, { key: 'cro', title: 'CRO details' }]; track party.key) {
-        <section class="zn-surface p-4 md:p-5" [formGroupName]="party.key">
-          <h2 class="zn-section-title mb-3">{{ party.title }}</h2>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <app-form-field label="Organisation name" [control]="form.get(party.key + '.name')" [required]="true">
-              <input class="zn-input" formControlName="name" [attr.aria-label]="party.title + ' name'" />
-            </app-form-field>
-            <app-form-field label="Contact person" [control]="form.get(party.key + '.contactPerson')">
-              <input class="zn-input" formControlName="contactPerson" [attr.aria-label]="party.title + ' contact person'" />
-            </app-form-field>
-            <app-form-field label="Email" [control]="form.get(party.key + '.email')" [required]="true">
-              <input class="zn-input" type="email" formControlName="email" [attr.aria-label]="party.title + ' email'" />
-            </app-form-field>
-            <app-form-field label="Phone" [control]="form.get(party.key + '.phone')">
-              <input class="zn-input" type="tel" formControlName="phone" [attr.aria-label]="party.title + ' phone'" />
-            </app-form-field>
-            <app-form-field class="sm:col-span-2" label="Address" [control]="form.get(party.key + '.address')">
-              <input class="zn-input" formControlName="address" [attr.aria-label]="party.title + ' address'" />
-            </app-form-field>
-          </div>
-        </section>
-      }
-    </div>
-
-    <section class="zn-surface p-4 md:p-5">
-      <h2 class="zn-section-title mb-3">Project management</h2>
-      <div class="grid gap-3 md:grid-cols-2">
-        <app-form-field label="Project Manager" [control]="form.controls.projectManagerId" [required]="true">
-          <app-searchable-select formControlName="projectManagerId" [options]="managerOptions()" placeholder="Select project manager" />
+      <fieldset class="zn-fieldset space-y-3">
+        <legend>
+          <label class="flex items-center gap-2"><input type="checkbox" class="zn-check" formControlName="monitoring" />
+            Monitoring</label>
+        </legend>
+        <app-form-field label="Monitoring details" [control]="form.controls.scope.controls.monitoringDetails">
+          <input class="zn-input" formControlName="monitoringDetails" aria-label="Monitoring details"
+            placeholder="Enter manually" />
         </app-form-field>
-        <app-form-field label="Back-up Project Manager" [control]="form.controls.backupProjectManagerId" hint="Optional">
-          <app-searchable-select formControlName="backupProjectManagerId" [options]="managerOptions()" placeholder="None" />
-        </app-form-field>
-      </div>
-    </section>
-
-    <section class="zn-surface p-4 md:p-5" formGroupName="scope">
-      <h2 class="zn-section-title mb-1">Scope of work</h2>
-      <p class="mb-3 text-xs text-ink-soft">Tick the applicable scope and enter details (from the "Project Details" section of the requirements).</p>
-      <div class="grid gap-4 lg:grid-cols-2">
-        <fieldset class="zn-fieldset space-y-3">
-          <legend>
-            <label class="flex items-center gap-2"><input type="checkbox" class="zn-check" formControlName="monitoring" /> Monitoring</label>
-          </legend>
-          <app-form-field label="Monitoring details" [control]="form.controls.scope.controls.monitoringDetails">
-            <input class="zn-input" formControlName="monitoringDetails" aria-label="Monitoring details" placeholder="Enter manually" />
-          </app-form-field>
-          <div formArrayName="visits" class="space-y-2">
-            <p class="zn-label">Visits in scope</p>
-            @for (v of visits.controls; track v; let i = $index) {
-              <div class="flex items-end gap-2" [formGroupName]="i">
-                <label class="flex-1">
-                  <span class="sr-only">Visit type {{ i + 1 }}</span>
-                  <select class="zn-input" formControlName="visitType">
-                    @for (t of visitTypes; track t) {
-                      <option [value]="t">{{ t }}</option>
-                    }
-                  </select>
-                </label>
-                <label class="w-24">
-                  <span class="sr-only">Days for visit {{ i + 1 }}</span>
-                  <input class="zn-input" type="number" min="1" max="30" formControlName="days" placeholder="Days" />
-                </label>
-                <span class="pb-2 text-xs text-ink-soft">day(s)</span>
-                @if (!isDetails()) {
-                  <button type="button" class="zn-action-btn zn-action-danger" (click)="removeVisit(i)" [attr.aria-label]="'Remove visit ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
+        <div formArrayName="visits" class="space-y-2">
+          <p class="zn-label">Visits in scope</p>
+          @for (v of visits.controls; track v; let i = $index) {
+          <div class="flex items-end gap-2" [formGroupName]="i">
+            <label class="flex-1">
+              <span class="sr-only">Visit type {{ i + 1 }}</span>
+              <select class="zn-input" formControlName="visitType">
+                @for (t of visitTypes; track t) {
+                <option [value]="t">{{ t }}</option>
                 }
-              </div>
-              @if (v.controls.days.invalid && v.controls.days.touched) {
-                <p class="text-xs text-danger">Days must be between 1 and 30.</p>
-              }
-            }
+              </select>
+            </label>
+            <label class="w-24">
+              <span class="sr-only">Days for visit {{ i + 1 }}</span>
+              <input class="zn-input" type="number" min="1" max="30" formControlName="days" placeholder="Days" />
+            </label>
+            <span class="pb-2 text-xs text-ink-soft">day(s)</span>
             @if (!isDetails()) {
-              <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="addVisit()"><svg lucideIcon="plus" [size]="14" /> Add visit</button>
+            <button type="button" class="zn-action-btn zn-action-danger" (click)="removeVisit(i)"
+              [attr.aria-label]="'Remove visit ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
             }
           </div>
-        </fieldset>
-        <fieldset class="zn-fieldset space-y-3">
-          <legend>
-            <label class="flex items-center gap-2"><input type="checkbox" class="zn-check" formControlName="audit" /> Audit</label>
-          </legend>
-          <app-form-field label="Audit details" [control]="form.controls.scope.controls.auditDetails">
-            <input class="zn-input" formControlName="auditDetails" aria-label="Audit details" placeholder="Enter manually" />
+          @if (v.controls.days.invalid && v.controls.days.touched) {
+          <p class="text-xs text-danger">Days must be between 1 and 30.</p>
+          }
+          }
+          @if (!isDetails()) {
+          <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="addVisit()"><svg lucideIcon="plus"
+              [size]="14" /> Add visit</button>
+          }
+        </div>
+      </fieldset>
+      <fieldset class="zn-fieldset space-y-3">
+        <legend>
+          <label class="flex items-center gap-2"><input type="checkbox" class="zn-check" formControlName="audit" />
+            Audit</label>
+        </legend>
+        <app-form-field label="Audit details" [control]="form.controls.scope.controls.auditDetails">
+          <input class="zn-input" formControlName="auditDetails" aria-label="Audit details"
+            placeholder="Enter manually" />
+        </app-form-field>
+        <div class="grid grid-cols-2 gap-3">
+          <app-form-field label="Audit days" [control]="form.controls.scope.controls.auditDays">
+            <input class="zn-input" type="number" min="1" formControlName="auditDays" aria-label="Audit days" />
           </app-form-field>
-          <div class="grid grid-cols-2 gap-3">
-            <app-form-field label="Audit days" [control]="form.controls.scope.controls.auditDays">
-              <input class="zn-input" type="number" min="1" formControlName="auditDays" aria-label="Audit days" />
-            </app-form-field>
-            <app-form-field label="Number of auditors" [control]="form.controls.scope.controls.auditors">
-              <input class="zn-input" type="number" min="1" formControlName="auditors" aria-label="Number of auditors" />
-            </app-form-field>
-          </div>
-        </fieldset>
-      </div>
-    </section>
-
-    @if (serverError()) {
-      <div class="zn-notice zn-notice-danger" role="alert"><svg lucideIcon="circle-alert" [size]="16" class="mt-0.5 shrink-0" /> {{ serverError() }}</div>
-    }
-
-    <div class="sticky bottom-0 -mx-3 flex justify-end gap-2 border-t border-line bg-paper/95 px-3 py-3 md:-mx-5 md:px-5">
-      <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()">Cancel</button>
-      <button type="submit" class="zn-btn zn-btn-primary"><svg lucideIcon="save" [size]="16" /> {{ id() ? 'Save changes' : 'Create project' }}</button>
+          <app-form-field label="Number of auditors" [control]="form.controls.scope.controls.auditors">
+            <input class="zn-input" type="number" min="1" formControlName="auditors" aria-label="Number of auditors" />
+          </app-form-field>
+        </div>
+      </fieldset>
     </div>
-  </form>
+  </section>
+
+  @if (serverError()) {
+  <div class="zn-notice zn-notice-danger" role="alert"><svg lucideIcon="circle-alert" [size]="16"
+      class="mt-0.5 shrink-0" /> {{ serverError() }}</div>
+  }
+
+  <div class="sticky bottom-0 -mx-3 flex justify-end gap-2 border-t border-line bg-paper/95 px-3 py-3 md:-mx-5 md:px-5">
+    <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()">Cancel</button>
+    <button type="submit" class="zn-btn zn-btn-primary"><svg lucideIcon="save" [size]="16" /> {{ id() ? 'Save changes' :
+      'Create project' }}</button>
+  </div>
+</form>
 }

@@ -23,7 +23,9 @@ export interface PlanActions {
   pmReturn: boolean;
   hodDecide: boolean;
   sendToSponsor: boolean;
+  directSign: boolean;
   sponsorDecide: boolean;
+  sponsorSign: boolean;
   pmRespond: boolean;
 }
 
@@ -63,6 +65,15 @@ export class MonitoringPlanService {
   label(id: string | null | undefined): string {
     const p = this.get(id);
     return p ? `${p.id} (v${p.version})` : '—';
+  }
+
+  /** Final approval (HOD and sponsor sign-off complete) unlocks Training & Delegation for the plan. */
+  isFinallyApproved(p: MonitoringPlan | null | undefined): boolean {
+    return p?.status === 'Approved';
+  }
+
+  approvedForProject(projectId: string): MonitoringPlan[] {
+    return this.forProject(projectId).filter(p => this.isFinallyApproved(p));
   }
 
   /* ---------- Risk scoring ---------- */
@@ -175,6 +186,7 @@ export class MonitoringPlanService {
   actions(p: MonitoringPlan): PlanActions {
     const can = (perm: Parameters<DemoRoleService['can']>[0]) => this.roles.can(perm);
     const editableStatus = p.status === 'Draft' || p.status === 'Rejected' || p.status === 'In PM Review';
+    const finalSaved = p.status === 'Final Saved' || p.status === 'HOD Approved';
     return {
       edit: can('plan.manage') && (editableStatus || p.sponsorReview === 'Changes Requested'),
       delete: can('plan.manage') && p.status !== 'Approved',
@@ -182,28 +194,23 @@ export class MonitoringPlanService {
       pmFinalSave: can('plan.pmReview') && p.status === 'In PM Review',
       pmReturn: can('plan.pmReview') && p.status === 'In PM Review',
       hodDecide: can('plan.hodApprove') && p.status === 'Pending HOD Approval',
-      sendToSponsor: can('plan.sendToSponsor') && p.status === 'HOD Approved' && (p.sponsorReview === 'Not Submitted' || p.sponsorReview === 'Changes Requested'),
+      sendToSponsor: can('plan.sendToSponsor') && finalSaved && (p.sponsorReview === 'Not Submitted' || p.sponsorReview === 'Changes Requested'),
+      directSign: can('plan.sendToSponsor') && finalSaved && p.sponsorReview === 'Not Submitted',
       sponsorDecide: can('plan.sponsorReview') && p.sponsorReview === 'Pending',
+      sponsorSign: can('plan.sponsorReview') && p.status === 'HOD Approved' && p.sponsorReview === 'Direct Sign',
       pmRespond: can('plan.pmReview') && p.sponsorReview === 'Changes Requested',
     };
   }
 
   submitForPmReview(id: string): void {
     const p = this.require(id);
-    this.transition(p, { status: 'In PM Review' }, 'Submitted for PM review', '');
+    this.transition(p, { status: 'In PM Review', sponsorReview: 'Not Submitted' }, 'Submitted for PM review', '');
     this.notifyPms(p, `plan-${id}-pmreview-${p.version}-${p.reviews.length}`, 'Monitoring Plan submitted for review', `${id} (${this.projectName(p)}) is ready for PM review.`);
   }
 
   pmFinalSave(id: string, comment: string, signature: SimSignature): void {
     const p = this.require(id);
-    this.transition(p, { status: 'Pending HOD Approval' }, 'Final save — prepared by PM (simulated signature)', comment, signature);
-    this.notifications.notify({
-      key: `plan-${id}-hod-${p.version}-${p.reviews.length}`,
-      recipientIds: this.users.approvers().map(u => u.id),
-      title: 'Monitoring Plan awaiting HOD approval',
-      message: `${id} (${this.projectName(p)}) was prepared by ${this.auth.user()?.name}.`,
-      link: `/plans/${id}`,
-    });
+    this.transition(p, { status: 'Final Saved' }, 'Final save — prepared by PM (simulated signature)', comment, signature);
   }
 
   pmReturn(id: string, comment: string): void {
@@ -211,10 +218,17 @@ export class MonitoringPlanService {
     this.transition(p, { status: 'Rejected' }, 'Returned for rework by PM', comment);
   }
 
+  /** Direct Sign route: HOD signs before the sponsor. Sponsor Review route: the sponsor already signed off, so this is final. */
   hodApprove(id: string, comment: string, signature: SimSignature): void {
     const p = this.require(id);
-    this.transition(p, { status: 'HOD Approved' }, 'HOD approved (simulated signature)', comment, signature);
-    this.notifyPms(p, `plan-${id}-hodok-${p.reviews.length}`, 'Monitoring Plan approved by HOD', `${id} can now be shared with the sponsor.`);
+    if (p.sponsorReview === 'Direct Sign') {
+      this.transition(p, { status: 'HOD Approved' }, 'Reviewed and approved by HOD (simulated signature)', comment, signature);
+      this.notifyPms(p, `plan-${id}-hodok-${p.reviews.length}`, 'Monitoring Plan approved by HOD', `${id} is awaiting the sponsor's signature.`);
+      this.notifySponsors(p, p.sponsorTo, `plan-${id}-sponsorsign-${p.version}-${p.reviews.length}`, 'Monitoring Plan awaiting your signature', `${id} v${p.version} (${this.projectName(p)}) is awaiting sponsor sign-off.`);
+      return;
+    }
+    this.transition(p, { status: 'Approved' }, 'HOD approved — final approval (simulated signature)', comment, signature);
+    this.notifyTeam(p, `plan-${id}-hodok-${p.reviews.length}`, 'Monitoring Plan approved by HOD', `${id} (${this.projectName(p)}) is approved. Training & Delegation can now be started.`);
   }
 
   hodReject(id: string, comment: string): void {
@@ -226,21 +240,34 @@ export class MonitoringPlanService {
   sendToSponsor(id: string, to: string, cc: string): void {
     const p = this.require(id);
     this.transition(p, { sponsorReview: 'Pending', sponsorTo: to, sponsorCc: cc }, 'Shared with sponsor for review', `To: ${to}${cc ? ` · CC: ${cc}` : ''}`);
-    const project = this.data.projects.get(p.projectId);
-    const recipients = this.users.sponsors().filter(u => u.organization === project?.sponsor.name || to.toLowerCase().includes(u.email.toLowerCase()));
-    this.notifications.notify({
-      key: `plan-${id}-sponsor-${p.version}-${p.reviews.length}`,
-      recipientIds: recipients.map(u => u.id),
-      title: 'Monitoring Plan submitted for your review',
-      message: `${id} v${p.version} (${this.projectName(p)}) is awaiting sponsor review.`,
-      link: `/plans/${id}`,
-    });
+    this.notifySponsors(p, to, `plan-${id}-sponsor-${p.version}-${p.reviews.length}`, 'Monitoring Plan submitted for your review', `${id} v${p.version} (${this.projectName(p)}) is awaiting sponsor review.`);
+  }
+
+  /** Direct Sign route, step 1 of 3: Prepared by PM → Reviewed and Approved by HOD → Approved by Sponsor. */
+  directSign(id: string, to: string, cc: string, signature: SimSignature): void {
+    const p = this.require(id);
+    this.transition(
+      p,
+      { status: 'Pending HOD Approval', sponsorReview: 'Direct Sign', sponsorTo: to, sponsorCc: cc },
+      'Direct sign — prepared by PM (simulated signature)',
+      `To: ${to}${cc ? ` · CC: ${cc}` : ''}`,
+      signature,
+    );
+    this.notifyHod(p, `${id} (${this.projectName(p)}) was signed by ${this.auth.user()?.name} for direct sign.`);
+  }
+
+  /** Direct Sign route, final step: the sponsor signs after the HOD. */
+  sponsorSign(id: string, comment: string, signature: SimSignature): void {
+    const p = this.require(id);
+    this.transition(p, { sponsorReview: 'Approved', status: 'Approved' }, 'Approved by sponsor — sign off (simulated signature)', comment, signature);
+    this.notifyTeam(p, `plan-${id}-sponsorsigned-${p.reviews.length}`, 'Monitoring Plan approved', `${id} was signed off by the sponsor and is approved. Training & Delegation can now be started.`);
   }
 
   sponsorApprove(id: string, comment: string, signature: SimSignature): void {
     const p = this.require(id);
-    this.transition(p, { sponsorReview: 'Approved', status: 'Approved' }, 'Sponsor approved — sign off (simulated signature)', comment, signature);
-    this.notifyTeam(p, `plan-${id}-sponsorok-${p.reviews.length}`, 'Sponsor feedback received', `${id} was approved by the sponsor.`);
+    this.transition(p, { sponsorReview: 'Approved', status: 'Pending HOD Approval' }, 'Sponsor approved — sign off (simulated signature)', comment, signature);
+    this.notifyTeam(p, `plan-${id}-sponsorok-${p.reviews.length}`, 'Sponsor feedback received', `${id} was approved by the sponsor and is awaiting HOD approval.`);
+    this.notifyHod(p, `${id} (${this.projectName(p)}) was approved by the sponsor.`);
   }
 
   sponsorRequestChanges(id: string, comment: string): void {
@@ -267,6 +294,22 @@ export class MonitoringPlanService {
     };
     this.data.plans.update(p.id, { ...patch, reviews: [...p.reviews, review] });
     this.activity.log(action, 'Monitoring Plan', p.id, p.projectId, `${p.id}: ${action}${comment ? ` — ${comment}` : ''}`);
+  }
+
+  private notifyHod(p: MonitoringPlan, message: string): void {
+    this.notifications.notify({
+      key: `plan-${p.id}-hod-${p.version}-${p.reviews.length}`,
+      recipientIds: this.users.approvers().map(u => u.id),
+      title: 'Monitoring Plan awaiting HOD approval',
+      message,
+      link: `/plans/${p.id}`,
+    });
+  }
+
+  private notifySponsors(p: MonitoringPlan, to: string, key: string, title: string, message: string): void {
+    const project = this.data.projects.get(p.projectId);
+    const recipients = this.users.sponsors().filter(u => u.organization === project?.sponsor.name || to.toLowerCase().includes(u.email.toLowerCase()));
+    this.notifications.notify({ key, recipientIds: recipients.map(u => u.id), title, message, link: `/plans/${p.id}` });
   }
 
   private notifyPms(p: MonitoringPlan, key: string, title: string, message: string): void {

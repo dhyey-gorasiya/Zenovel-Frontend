@@ -1,140 +1,167 @@
-<div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end">
+<div class="mb-4 flex flex-col gap-3 sm:mb-5 lg:flex-row lg:items-end lg:justify-between">
   <div class="min-w-0 flex-1">
-    <h1 class="zn-page-title">Welcome back, {{ auth.user()?.name }}</h1>
-    <p class="mt-1 text-sm text-ink-soft">{{ auth.user()?.role }} · {{ auth.user()?.organization }} — figures below cover the records available to you.</p>
+    <h1 class="zn-page-title text-xl wrap-break-word sm:text-2xl">Welcome back, {{ auth.user()?.name }}</h1>
+    <p class="mt-1 text-xs text-ink-soft sm:text-sm">
+      {{ auth.user()?.role }} · {{ auth.user()?.organization }} — figures below cover the records available to you.
+    </p>
   </div>
   @if (quickActions().length) {
-    <div class="flex flex-wrap gap-2">
-      @for (a of quickActions(); track a.link; let first = $first) {
-        <a [routerLink]="a.link" class="zn-btn zn-btn-sm" [class]="first ? 'zn-btn-primary' : 'zn-btn-ghost'">
-          <svg lucideIcon="plus" [size]="14" /> {{ a.label }}
-        </a>
-      }
-    </div>
-  }
-</div>
-
-<div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-  @for (k of dash.kpis(); track k.label) {
-    <a [routerLink]="k.link" [queryParams]="k.query" class="zn-kpi group" [attr.aria-label]="k.label + ': ' + k.value">
-      <div class="flex items-center justify-between">
-        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent"><svg [lucideIcon]="k.icon" [size]="16" /></span>
-        <svg lucideIcon="arrow-right" [size]="14" class="text-ink-soft opacity-0 transition-opacity group-hover:opacity-100" />
-      </div>
-      <div class="mt-3 text-2xl font-semibold tabular-nums text-ink">{{ k.value }}</div>
-      <div class="mt-0.5 text-sm font-medium leading-snug text-ink">{{ k.label }}</div>
-      <div class="mt-0.5 text-xs text-ink-soft">{{ k.hint }}</div>
+  <div class="flex flex-wrap gap-2 lg:max-w-[60%] lg:justify-end">
+    @for (a of quickActions(); track a.link; let first = $first) {
+    <a [routerLink]="a.link" class="zn-btn zn-btn-sm grow sm:grow-0"
+      [class]="first ? 'zn-btn-primary' : 'zn-btn-ghost'">
+      <svg lucideIcon="plus" [size]="14" /> {{ a.label }}
     </a>
+    }
+  </div>
   }
 </div>
 
-<div class="mt-4 grid gap-4 lg:grid-cols-2">
-  <section class="zn-surface">
-    <div class="zn-card-head">
-      <h2 class="zn-section-title">Project status</h2>
-      <span class="text-xs text-ink-soft">Click a segment to filter</span>
+<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 2xl:grid-cols-6">
+  @for (k of dash.kpis(); track k.label) {
+  <a [routerLink]="k.link" [queryParams]="k.query" class="zn-kpi group flex h-full min-w-0 flex-col p-3 sm:p-4"
+    [attr.aria-label]="k.label + ': ' + k.value">
+    <div class="flex items-center justify-between">
+      <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
+        <svg [lucideIcon]="k.icon" [size]="16" />
+      </span>
+      <svg lucideIcon="arrow-right" [size]="14"
+        class="shrink-0 text-ink-soft opacity-0 transition-opacity group-hover:opacity-100" />
     </div>
-    <div class="p-4">
+    <div class="mt-2.5 text-xl font-semibold tabular-nums text-ink sm:mt-3 sm:text-2xl">{{ k.value }}</div>
+    <div class="mt-0.5 text-[0.8rem] font-medium leading-snug text-ink wrap-break-word sm:text-sm">{{ k.label }}</div>
+    <div class="mt-auto line-clamp-2 pt-0.5 text-xs text-ink-soft wrap-break-word">{{ k.hint }}</div>
+  </a>
+  }
+</div>
+
+<div class="mt-3 grid gap-3 sm:mt-4 sm:gap-4 lg:grid-cols-2">
+  <section class="zn-surface flex min-w-0 flex-col">
+    <div class="zn-card-head">
+      <h2 class="zn-section-title min-w-0 truncate">Project status</h2>
+      <span class="hidden shrink-0 text-xs text-ink-soft sm:inline">Click a segment to filter</span>
+    </div>
+    <div class="flex min-w-0 flex-1 flex-col justify-center p-3 sm:p-4">
       @if (dash.projectStatus().length) {
-        <app-chart type="doughnut" [data]="dash.projectStatus()" height="15rem" ariaLabel="Project status distribution" (segmentClick)="openProjects($event)" />
+      <app-chart class="block min-w-0" type="doughnut" [data]="dash.projectStatus()" height="15rem"
+        ariaLabel="Project status distribution" (segmentClick)="openProjects($event)" />
       } @else {
-        <app-empty-state title="No projects yet" message="Projects you manage or can access will appear here." icon="folder-kanban" />
+      <app-empty-state title="No projects yet" message="Projects you manage or can access will appear here."
+        icon="folder-kanban" />
       }
     </div>
   </section>
 
-  <section class="zn-surface">
+  <section class="zn-surface flex min-w-0 flex-col">
     <div class="zn-card-head">
-      <h2 class="zn-section-title">Monitoring Plan status</h2>
-      <span class="text-xs text-ink-soft">Click a bar to filter</span>
+      <h2 class="zn-section-title min-w-0 truncate">Monitoring Plan status</h2>
+      <span class="hidden shrink-0 text-xs text-ink-soft sm:inline">Click a bar to filter</span>
     </div>
-    <div class="p-4">
+    <div class="flex min-w-0 flex-1 flex-col justify-center p-3 sm:p-4">
       @if (hasPlans()) {
-        <app-chart type="bar" [data]="dash.planStatus()" height="15rem" ariaLabel="Monitoring plan status distribution" (segmentClick)="openPlans($event)" />
+      <app-chart class="block min-w-0" type="bar" [data]="dash.planStatus()" height="15rem"
+        ariaLabel="Monitoring plan status distribution" (segmentClick)="openPlans($event)" />
       } @else {
-        <app-empty-state title="No monitoring plans" message="Plans will appear once they are created or shared with you." icon="clipboard-list" />
+      <app-empty-state title="No monitoring plans" message="Plans will appear once they are created or shared with you."
+        icon="clipboard-list" />
       }
     </div>
   </section>
 </div>
 
-<div class="mt-4 grid gap-4 lg:grid-cols-2">
-  <section class="zn-surface">
+<div class="mt-3 grid gap-3 sm:mt-4 sm:gap-4 lg:grid-cols-2">
+  <section class="zn-surface flex min-w-0 flex-col overflow-hidden">
     <div class="zn-card-head">
-      <h2 class="zn-section-title">Pending approvals &amp; actions</h2>
-      <span class="zn-badge zn-badge-warn">{{ dash.pendingActions().length }}</span>
+      <h2 class="zn-section-title min-w-0 truncate">Pending approvals &amp; actions</h2>
+      <span class="zn-badge zn-badge-warn shrink-0">{{ dash.pendingActions().length }}</span>
     </div>
-    <ul class="max-h-80 divide-y divide-line overflow-auto">
+    <ul class="max-h-80 flex-1 divide-y divide-line overflow-auto">
       @for (a of dash.pendingActions(); track a.label + a.link) {
-        <li>
-          <a [routerLink]="a.link" class="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-mist">
-            <span class="h-2 w-2 shrink-0 rounded-full" [class]="a.tone === 'danger' ? 'bg-danger' : a.tone === 'warn' ? 'bg-warn' : 'bg-accent'"></span>
-            <span class="min-w-0 flex-1">
-              <span class="block font-medium text-ink">{{ a.label }}</span>
-              <span class="block truncate text-xs text-ink-soft">{{ a.detail }}</span>
-            </span>
-            <svg lucideIcon="chevron-right" [size]="16" class="text-ink-soft" />
-          </a>
-        </li>
+      <li>
+        <a [routerLink]="a.link"
+          class="flex items-center gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-mist sm:px-4">
+          <span class="h-2 w-2 shrink-0 rounded-full"
+            [class]="a.tone === 'danger' ? 'bg-danger' : a.tone === 'warn' ? 'bg-warn' : 'bg-accent'"></span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-medium text-ink">{{ a.label }}</span>
+            <span class="line-clamp-2 text-xs text-ink-soft sm:line-clamp-1">{{ a.detail }}</span>
+          </span>
+          <svg lucideIcon="chevron-right" [size]="16" class="shrink-0 text-ink-soft" />
+        </a>
+      </li>
       } @empty {
-        <li><app-empty-state title="Nothing waiting on you" message="Approvals, acknowledgements and reviews for your role will show here." icon="circle-check" /></li>
+      <li>
+        <app-empty-state title="Nothing waiting on you"
+          message="Approvals, acknowledgements and reviews for your role will show here." icon="circle-check" />
+      </li>
       }
     </ul>
   </section>
 
-  <section class="zn-surface">
+  <section class="zn-surface flex min-w-0 flex-col overflow-hidden">
     <div class="zn-card-head">
-      <h2 class="zn-section-title">Upcoming monitoring visits</h2>
-      <a routerLink="/assignments" [queryParams]="{ when: 'upcoming' }" class="zn-btn-link">View all</a>
+      <h2 class="zn-section-title min-w-0 truncate">Upcoming monitoring visits</h2>
+      <a routerLink="/assignments" [queryParams]="{ when: 'upcoming' }" class="zn-btn-link shrink-0">View all</a>
     </div>
-    <ul class="divide-y divide-line">
+    <ul class="flex-1 divide-y divide-line">
       @for (v of dash.upcomingVisits(); track v.id) {
-        <li>
-          <a [routerLink]="['/assignments', v.id]" class="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-mist">
-            <span class="flex w-12 shrink-0 flex-col items-center rounded-lg bg-accent-soft py-1 text-accent">
-              <span class="text-[0.62rem] font-bold uppercase">{{ v.visitDate | date: 'MMM' }}</span>
-              <span class="text-base font-bold leading-none">{{ v.visitDate | date: 'dd' }}</span>
-            </span>
-            <span class="min-w-0 flex-1">
-              <span class="block font-medium text-ink">{{ v.visitType }} · {{ projects.name(v.projectId) }}</span>
-              <span class="block truncate text-xs text-ink-soft">{{ users.name(v.monitorId) }} · {{ v.id }}</span>
-            </span>
-            <app-status-badge [status]="v.status" />
-          </a>
-        </li>
+      <li>
+        <a [routerLink]="['/assignments', v.id]"
+          class="flex items-center gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-mist sm:px-4">
+          <span class="flex w-11 shrink-0 flex-col items-center rounded-lg bg-accent-soft py-1 text-accent sm:w-12">
+            <span class="text-[0.62rem] font-bold uppercase">{{ v.visitDate | date: 'MMM' }}</span>
+            <span class="text-base font-bold leading-none">{{ v.visitDate | date: 'dd' }}</span>
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-medium text-ink">{{ v.visitType }} · {{ projects.name(v.projectId)
+              }}</span>
+            <span class="block truncate text-xs text-ink-soft">{{ users.name(v.monitorId) }} · {{ v.id }}</span>
+          </span>
+          <app-status-badge class="shrink-0" [status]="v.status" />
+        </a>
+      </li>
       } @empty {
-        <li><app-empty-state title="No upcoming visits" message="Assigned monitoring visits with future dates appear here." icon="calendar-clock" /></li>
+      <li>
+        <app-empty-state title="No upcoming visits" message="Assigned monitoring visits with future dates appear here."
+          icon="calendar-clock" />
+      </li>
       }
     </ul>
   </section>
 </div>
 
-<div class="mt-4 grid gap-4 lg:grid-cols-2">
-  <section class="zn-surface">
-    <div class="zn-card-head"><h2 class="zn-section-title">Recent activity</h2></div>
-    <div class="p-4">
+<div class="mt-3 grid gap-3 sm:mt-4 sm:gap-4 lg:grid-cols-2">
+  <section class="zn-surface flex min-w-0 flex-col overflow-hidden">
+    <div class="zn-card-head">
+      <h2 class="zn-section-title min-w-0 truncate">Recent activity</h2>
+    </div>
+    <div class="min-w-0 flex-1 p-3 wrap-break-word sm:p-4">
       <app-activity-timeline [items]="timeline()" emptyText="No recent activity on your projects." />
     </div>
   </section>
 
-  <section class="zn-surface">
+  <section class="zn-surface flex min-w-0 flex-col overflow-hidden">
     <div class="zn-card-head">
-      <h2 class="zn-section-title">Recently updated projects</h2>
-      <a routerLink="/projects" class="zn-btn-link">All projects</a>
+      <h2 class="zn-section-title min-w-0 truncate">Recently updated projects</h2>
+      <a routerLink="/projects" class="zn-btn-link shrink-0">All projects</a>
     </div>
-    <ul class="divide-y divide-line">
+    <ul class="flex-1 divide-y divide-line">
       @for (p of dash.recentProjects(); track p.id) {
-        <li>
-          <a [routerLink]="['/projects', p.id]" class="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-mist">
-            <span class="min-w-0 flex-1">
-              <span class="block font-medium text-ink">{{ p.name }}</span>
-              <span class="block truncate text-xs text-ink-soft">{{ p.id }} · {{ p.protocolNo }} · {{ p.studyType }} ({{ p.blinding }}) · updated {{ p.updatedAt | date: 'dd MMM yyyy' }}</span>
+      <li>
+        <a [routerLink]="['/projects', p.id]"
+          class="flex items-center gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-mist sm:px-4">
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-medium text-ink">{{ p.name }}</span>
+            <span class="line-clamp-2 text-xs text-ink-soft sm:line-clamp-1">
+              {{ p.id }} · {{ p.protocolNo }} · {{ p.studyType }} ({{ p.blinding }}) · updated {{ p.updatedAt | date:
+              'dd MMM yyyy' }}
             </span>
-            <app-status-badge [status]="p.status" />
-          </a>
-        </li>
+          </span>
+          <app-status-badge class="shrink-0" [status]="p.status" />
+        </a>
+      </li>
       } @empty {
-        <li><app-empty-state title="No projects" icon="folder-kanban" /></li>
+      <li><app-empty-state title="No projects" icon="folder-kanban" /></li>
       }
     </ul>
   </section>

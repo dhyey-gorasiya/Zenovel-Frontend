@@ -4,6 +4,7 @@ import { AuthService } from '../auth/auth.service';
 import { DataStore } from '../data/data-store.service';
 import { Project } from '../models';
 import { ActivityService } from './activity.service';
+import { NotificationService } from './notification.service';
 
 export type ProjectInput = Omit<Project, 'id' | 'updatedAt' | 'createdAt' | 'createdById'>;
 
@@ -21,6 +22,7 @@ export class ProjectService {
   private readonly auth = inject(AuthService);
   private readonly scope = inject(AccessScopeService);
   private readonly activity = inject(ActivityService);
+  private readonly notifications = inject(NotificationService);
 
   readonly visible = computed(() => this.data.projects.items().filter(p => this.scope.project(p)));
 
@@ -66,6 +68,7 @@ export class ProjectService {
       updatedAt: now,
     });
     this.activity.log('Created', 'Project', project.id, project.id, `Project ${project.id} ${project.name} created`);
+    this.notifyAssignedManager(project);
     return project;
   }
 
@@ -77,6 +80,7 @@ export class ProjectService {
     if (updated) {
       const statusNote = before && before.status !== updated.status ? ` (status ${before.status} → ${updated.status})` : '';
       this.activity.log('Updated', 'Project', id, id, `Project ${id} updated${statusNote}`);
+      if (before && before.projectManagerId !== updated.projectManagerId) this.notifyAssignedManager(updated);
     }
     return updated;
   }
@@ -96,7 +100,7 @@ export class ProjectService {
   delete(id: string): void {
     const p = this.get(id);
     if (!p) return;
-    const linkPrefixes: string[] = [`/projects/${id}`];
+    const linkPrefixes: string[] = [`/projects/${id}`, this.planFormLink(id)];
     const removeAll = <T extends { id: string; projectId: string }>(items: T[], remove: (id: string) => void, route: string) =>
       items.filter(x => x.projectId === id).forEach(x => {
         linkPrefixes.push(`${route}/${x.id}`);
@@ -109,5 +113,20 @@ export class ProjectService {
     this.data.notifications.items().filter(n => linkPrefixes.some(l => n.link === l || n.link.startsWith(l + '/'))).forEach(n => this.data.notifications.remove(n.id));
     this.data.projects.remove(id);
     this.activity.log('Deleted', 'Project', id, null, `Project ${id} ${p.name} deleted with all dependent records`);
+  }
+
+  private planFormLink(projectId: string): string {
+    return `/plans/new?projectId=${encodeURIComponent(projectId)}`;
+  }
+
+  /** Points the assigned PM to the Monitoring Plan form, prefilled from this project. */
+  private notifyAssignedManager(p: Project): void {
+    this.notifications.notify({
+      key: `project-${p.id}-assigned-${p.projectManagerId}`,
+      recipientIds: [p.projectManagerId],
+      title: 'Project assigned to you',
+      message: `${p.id} (${p.name}) is assigned to you. Prepare the Monitoring Plan — project details are prefilled.`,
+      link: this.planFormLink(p.id),
+    });
   }
 }

@@ -16,8 +16,8 @@ import {
 export const STUDY_TYPES: StudyType[] = ['Clinical Trial', 'BA/BE'];
 export const BLINDING_TYPES: Blinding[] = ['Open label', 'Blind'];
 export const PROJECT_STATUSES: ProjectStatus[] = ['Planning', 'Active', 'On Hold', 'Completed', 'Cancelled'];
-export const PLAN_STATUSES: PlanStatus[] = ['Draft', 'In PM Review', 'Pending HOD Approval', 'HOD Approved', 'Rejected', 'Approved'];
-export const SPONSOR_REVIEW_STATUSES: SponsorReviewStatus[] = ['Not Submitted', 'Pending', 'Changes Requested', 'Approved'];
+export const PLAN_STATUSES: PlanStatus[] = ['Draft', 'In PM Review', 'Final Saved', 'Pending HOD Approval', 'HOD Approved', 'Rejected', 'Approved'];
+export const SPONSOR_REVIEW_STATUSES: SponsorReviewStatus[] = ['Not Submitted', 'Pending', 'Changes Requested', 'Approved', 'Direct Sign'];
 export const AUTHORIZATION_STATUSES: AuthorizationStatus[] = ['Not Requested', 'Pending', 'Authorized', 'Rejected'];
 export const ASSIGNMENT_STATUSES: AssignmentStatus[] = ['Planned', 'Notified', 'Acknowledged', 'Completed', 'Cancelled'];
 export const REPORT_STATUSES: ReportStatus[] = ['Draft', 'In Review', 'Changes Requested', 'Approved'];
@@ -73,6 +73,18 @@ export const DUTIES_BY_BLINDING: Record<Blinding, MonitorDuty[]> = {
   'Open label': ['Primary', 'Secondary'],
   Blind: ['Primary Unblinded', 'Secondary Unblinded', 'Primary Blinded', 'Secondary Blinded'],
 };
+
+/** "Type of Study" descriptions from the Training and Delegation sheet. */
+export const BLINDING_DESCRIPTIONS: Record<Blinding, string> = {
+  'Open label': 'If Open Label is selected, Training and Delegation only requires the Primary Monitor and Secondary Monitor.',
+  Blind: 'If any blind study is selected, Training and Delegation requires the Primary Unblinded Monitor, Secondary Unblinded Monitor, Primary Blinded Monitor and Secondary Blinded Monitor.',
+};
+
+/** Column groups of the "Delegation of Monitor(s)" grid on the sheet. */
+export const DUTY_GROUPS: { label: string; blinding: Blinding; duties: MonitorDuty[] }[] = [
+  { label: 'Duty (Open Label)', blinding: 'Open label', duties: DUTIES_BY_BLINDING['Open label'] },
+  { label: 'Duty (Blind)', blinding: 'Blind', duties: DUTIES_BY_BLINDING.Blind },
+];
 
 /**
  * Duties that must be filled before a delegation can be saved.

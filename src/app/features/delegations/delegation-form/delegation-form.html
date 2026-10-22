@@ -1,7 +1,7 @@
 @if (blocked()) {
   <app-error-state title="Delegation not available" message="This delegation record does not exist, is outside your access, or your role cannot edit it." backLink="/delegations" backLabel="Back to delegations" />
 } @else {
-  <app-page-header [title]="existing() ? 'Edit Delegation ' + existing()!.id : 'Create Delegation Record'" description="Training and delegation of monitoring responsibilities (Project Manager).">
+  <app-page-header [title]="existing() ? 'Edit Delegation ' + existing()!.id : 'Create Delegation Record'" description="Training and Delegation — Responsibility: Project Manager.">
     <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()"><svg lucideIcon="arrow-left" [size]="16" /> Back</button>
   </app-page-header>
 
@@ -16,117 +16,201 @@
     <div class="zn-notice zn-notice-warn mb-3"><svg lucideIcon="triangle-alert" [size]="16" class="mt-0.5 shrink-0" /> {{ ackWarning() }}</div>
   }
 
+  @let p = project();
+  @let mp = plan();
   <form [formGroup]="form" (ngSubmit)="save()" novalidate class="space-y-4">
-    <section class="zn-surface p-4 md:p-5">
-      <h2 class="zn-section-title mb-3">Project &amp; monitoring plan</h2>
-      <div class="grid gap-3 md:grid-cols-2">
+    <section class="zn-surface overflow-hidden">
+      <div class="zn-card-head">
+        <div>
+          <h2 class="zn-section-title">Training and Delegation</h2>
+          <p class="text-xs text-ink-soft">Responsibility: Project Manager</p>
+        </div>
+      </div>
+      <div class="grid gap-3 border-b border-line p-4 md:grid-cols-2">
         <app-form-field label="Project" [control]="form.controls.projectId" [required]="true">
           <app-searchable-select formControlName="projectId" [options]="projectOptions()" placeholder="Select a project" />
         </app-form-field>
-        <app-form-field label="Linked Monitoring Plan" [control]="form.controls.planId" [required]="true" [hint]="project() && !planOptions().length ? 'This project has no monitoring plan yet — create one first.' : ''">
-          <app-searchable-select formControlName="planId" [options]="planOptions()" [placeholder]="project() ? 'Select a plan' : 'Select a project first'" />
-        </app-form-field>
-      </div>
-      @if (project(); as p) {
-        <dl class="zn-kv mt-4 rounded-lg bg-sunken p-3">
-          <div class="col-span-full"><dt>Project Title / Protocol Title</dt><dd>{{ p.protocolTitle }}</dd></div>
-          <div><dt>CRO Project No. / Protocol No.</dt><dd>{{ p.protocolNo }}</dd></div>
-          <div><dt>Sponsor Project No.</dt><dd>{{ p.sponsorProjectNo || '—' }}</dd></div>
-          <div><dt>Zenovel Project No.</dt><dd>{{ p.zenovelProjectNo }}</dd></div>
-          <div><dt>CRO Details</dt><dd>{{ p.cro.name }}</dd></div>
-          <div><dt>Sponsor Details</dt><dd>{{ p.sponsor.name }}</dd></div>
-          <div><dt>Type of Study</dt><dd><span class="zn-badge" [class]="p.blinding === 'Blind' ? 'zn-badge-info' : 'zn-badge-ok'">{{ p.blinding }}</span> · {{ p.studyType }}</dd></div>
-          @if (plan(); as mp) {
-            <div><dt>Monitoring Plan Version / Date</dt><dd>v{{ mp.version }} · {{ mp.updatedAt.slice(0, 10) }}</dd></div>
-          }
-        </dl>
-      }
-      <app-form-field class="mt-3" label="CRO Project No. / Protocol Version No.; Date and Amendment details (if any)" [control]="form.controls.protocolVersionDetails">
-        <input class="zn-input" formControlName="protocolVersionDetails" aria-label="Protocol version, date and amendment details" />
-      </app-form-field>
-    </section>
-
-    <section class="zn-surface p-4 md:p-5">
-      <h2 class="zn-section-title mb-3">Monitoring plan meeting</h2>
-      <div class="grid gap-3 md:grid-cols-3">
-        <app-form-field label="Meeting date" [control]="form.controls.meetingDate" [required]="true">
-          <app-date-picker formControlName="meetingDate" ariaLabel="Meeting date" />
-        </app-form-field>
-        <app-form-field label="Start time" [control]="form.controls.startTime" [required]="true">
-          <app-date-picker type="time" formControlName="startTime" ariaLabel="Meeting start time" />
-        </app-form-field>
-        <app-form-field label="End time" [control]="form.controls.endTime" [required]="true">
-          <app-date-picker type="time" formControlName="endTime" [min]="form.controls.startTime.value" ariaLabel="Meeting end time" />
+        <app-form-field label="Linked Monitoring Plan (finally approved)" [control]="form.controls.planId" [required]="true" [hint]="p && !planOptions().length ? 'Training & Delegation unlocks once this project\'s monitoring plan is finally approved (HOD and sponsor sign-off).' : ''">
+          <app-searchable-select formControlName="planId" [options]="planOptions()" [placeholder]="p ? 'Select an approved plan' : 'Select a project first'" />
         </app-form-field>
       </div>
 
-      <div class="mt-4 grid gap-4 lg:grid-cols-2">
-        @for (grp of [{ arr: attendees, title: 'Attendees', name: 'attendees' }, { arr: conductedBy, title: 'Discussion conducted by', name: 'conductedBy' }]; track grp.name) {
-          <fieldset class="zn-fieldset space-y-2" [formArrayName]="grp.name">
-            <legend>{{ grp.title }}</legend>
-            @for (g of grp.arr.controls; track g; let i = $index) {
-              <div class="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]" [formGroupName]="i">
-                <app-searchable-select formControlName="userId" [options]="peopleOptions()" placeholder="Pick user (optional)" />
-                <input class="zn-input" formControlName="name" placeholder="Name" [attr.aria-label]="grp.title + ' ' + (i + 1) + ' name'" />
-                <input class="zn-input" formControlName="details" placeholder="Details" [attr.aria-label]="grp.title + ' ' + (i + 1) + ' details'" />
-                <button type="button" class="zn-action-btn zn-action-danger" (click)="removePerson(grp.arr, i)" [attr.aria-label]="'Remove ' + grp.title + ' ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
-                @if (g.controls.name.invalid && g.controls.name.touched) { <p class="text-xs text-danger sm:col-span-4">Name is required.</p> }
-              </div>
-            } @empty {
-              <p class="text-sm text-ink-soft">None added.</p>
-            }
-            <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="addPerson(grp.arr)"><svg lucideIcon="plus" [size]="14" /> Add more</button>
-          </fieldset>
-        }
-      </div>
-
-      <div class="mt-4 grid gap-3 md:grid-cols-2">
-        <app-form-field label="Discussion details" [control]="form.controls.discussionDetails" [required]="true">
-          <textarea class="zn-input" rows="3" formControlName="discussionDetails" aria-label="Discussion details"></textarea>
-        </app-form-field>
-        <app-form-field label="Delegated responsibilities" [control]="form.controls.delegatedResponsibilities" [required]="true">
-          <textarea class="zn-input" rows="3" formControlName="delegatedResponsibilities" aria-label="Delegated responsibilities"></textarea>
-        </app-form-field>
-      </div>
-    </section>
-
-    <section class="zn-surface p-4 md:p-5" formGroupName="monitors">
-      <h2 class="zn-section-title mb-1">Delegation of monitor(s)</h2>
-      @if (project(); as p) {
-        <p class="mb-3 text-xs text-ink-soft">
-          @if (p.blinding === 'Blind') {
-            Blinded study: assign Primary/Secondary <strong>Unblinded</strong> and Primary/Secondary <strong>Blinded</strong> monitors.
-          } @else {
-            Open-label study: assign the Primary and Secondary monitor.
-          }
-          Primary duties are required.
-        </p>
-        <div class="grid gap-3 md:grid-cols-2">
-          @for (duty of duties(); track duty) {
-            <div class="rounded-lg border p-3" [class]="isUnblinded(duty) ? 'border-warn/40 bg-warn-soft/40' : isBlinded(duty) ? 'border-info/40 bg-info-soft/40' : 'border-line'">
-              <app-form-field [label]="duty + ' Monitor'" [control]="form.controls.monitors.controls[duty]" [required]="delegations.isRequired(duty)">
-                <app-searchable-select [formControlName]="duty" [options]="monitorOptions()" placeholder="Select monitor" />
-              </app-form-field>
-              <div class="mt-1.5 flex items-center justify-between gap-2 text-xs">
-                <span class="text-ink-soft">{{ users.email(form.controls.monitors.controls[duty].value) || 'No monitor selected' }}</span>
-                @if (isUnblinded(duty)) { <span class="zn-badge zn-badge-warn"><svg lucideIcon="eye" [size]="11" /> Unblinded</span> }
-                @if (isBlinded(duty)) { <span class="zn-badge zn-badge-info"><svg lucideIcon="eye-off" [size]="11" /> Blinded</span> }
-              </div>
+      <app-sheet-row label="Project Title / Protocol Title" source="project">{{ p ? p.name + ' — ' + p.protocolTitle : '—' }}</app-sheet-row>
+      <app-sheet-row label="CRO Project No. / Protocol No." source="project">{{ p?.protocolNo || '—' }}</app-sheet-row>
+      <app-sheet-row label="CRO Project No. / Protocol Version No.; Date" source="manual">
+        <input class="zn-input" formControlName="protocolVersionDetails" placeholder="e.g. Protocol v2.0; 12 Mar 2026; Amendment 1 (if any)" aria-label="CRO Project No. / Protocol Version No.; Date" />
+        @if (errorOf(form.controls.protocolVersionDetails); as msg) { <p class="mt-1 text-xs text-danger">{{ msg }}</p> }
+      </app-sheet-row>
+      <app-sheet-row label="Sponsor Project No." source="project">{{ p?.sponsorProjectNo || '—' }}</app-sheet-row>
+      <app-sheet-row label="CRO Details" source="project"><app-party-details [party]="p?.cro" /></app-sheet-row>
+      <app-sheet-row label="Sponsor Details" source="project"><app-party-details [party]="p?.sponsor" /></app-sheet-row>
+      <app-sheet-row label="Zenovel Project No." source="project">{{ p?.zenovelProjectNo || '—' }}</app-sheet-row>
+      <app-sheet-row label="Type of Study" source="project">
+        <div class="grid gap-2 sm:grid-cols-2">
+          @for (t of blindingTypes; track t) {
+            <div class="rounded-lg border p-2.5" [class]="p?.blinding === t ? 'border-accent bg-accent-soft' : 'border-line opacity-70'">
+              <p class="flex items-center gap-1.5 font-medium">
+                {{ t }}
+                @if (p?.blinding === t) { <span class="zn-badge zn-badge-ok">Selected</span> }
+              </p>
+              <p class="mt-0.5 text-xs text-ink-soft">{{ blindingDescriptions[t] }}</p>
             </div>
           }
         </div>
-        @if (separationWarning()) {
-          <div class="zn-notice zn-notice-warn mt-3"><svg lucideIcon="triangle-alert" [size]="16" class="mt-0.5 shrink-0" /> {{ separationWarning() }}</div>
-        }
-      } @else {
-        <p class="text-sm text-ink-soft">Select a project to see the applicable monitor duties.</p>
+        @if (p) { <p class="mt-1 text-xs text-ink-soft">Study type: {{ p.studyType }}</p> }
+      </app-sheet-row>
+      <app-sheet-row label="Monitoring Plan Version No. and Date" source="plan">
+        @if (mp) { {{ mp.id }} · v{{ mp.version }} · {{ mp.updatedAt.slice(0, 10) }} } @else { <span class="text-ink-soft">Select an approved monitoring plan</span> }
+      </app-sheet-row>
+      <app-sheet-row label="Monitoring Plan Meeting Date" source="manual" [required]="true">
+        <app-date-picker formControlName="meetingDate" ariaLabel="Monitoring Plan Meeting Date" />
+        @if (errorOf(form.controls.meetingDate); as msg) { <p class="mt-1 text-xs text-danger">{{ msg }}</p> }
+      </app-sheet-row>
+      <app-sheet-row label="Monitoring Plan Meeting Start Time" source="manual" [required]="true">
+        <app-date-picker type="time" formControlName="startTime" ariaLabel="Monitoring Plan Meeting Start Time" />
+        @if (errorOf(form.controls.startTime); as msg) { <p class="mt-1 text-xs text-danger">{{ msg }}</p> }
+      </app-sheet-row>
+      <app-sheet-row label="Monitoring Plan Meeting End Time" source="manual" [required]="true">
+        <app-date-picker type="time" formControlName="endTime" [min]="form.controls.startTime.value" ariaLabel="Monitoring Plan Meeting End Time" />
+        @if (errorOf(form.controls.endTime); as msg) { <p class="mt-1 text-xs text-danger">{{ msg }}</p> }
+      </app-sheet-row>
+    </section>
+
+    <div class="grid gap-4 lg:grid-cols-2">
+      @for (grp of [{ arr: attendees, title: 'Attendees', name: 'attendees' }, { arr: conductedBy, title: 'Discussion Conducted By', name: 'conductedBy' }]; track grp.name) {
+        <section class="zn-surface p-4 md:p-5" [formArrayName]="grp.name">
+          <h2 class="zn-section-title">{{ grp.title }}</h2>
+          <p class="mb-3 text-xs text-ink-soft">Tick from the list. Use “Add other (details)” to add one more person with their details.</p>
+          <div class="grid gap-1.5 sm:grid-cols-2">
+            @for (u of people(); track u.id) {
+              <label class="flex items-start gap-2 text-sm">
+                <input type="checkbox" class="zn-check mt-0.5" [checked]="isTicked(grp.arr, u.id)" (change)="togglePerson(grp.arr, u, $any($event.target).checked)" />
+                <span>{{ u.name }}<br /><span class="text-xs text-ink-soft">{{ u.role }} · {{ u.title }}</span></span>
+              </label>
+            }
+          </div>
+          <div class="mt-3 space-y-2">
+            @for (g of grp.arr.controls; track g; let i = $index) {
+              @if (!isListed(g.controls.userId.value)) {
+                <div class="grid gap-2 sm:grid-cols-[1fr_1fr_auto]" [formGroupName]="i">
+                  <input class="zn-input" formControlName="name" placeholder="Name" [attr.aria-label]="grp.title + ' ' + (i + 1) + ' name'" />
+                  <input class="zn-input" formControlName="details" placeholder="Details" [attr.aria-label]="grp.title + ' ' + (i + 1) + ' details'" />
+                  <button type="button" class="zn-action-btn zn-action-danger" (click)="removePerson(grp.arr, i)" [attr.aria-label]="'Remove ' + grp.title + ' ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
+                  @if (g.controls.name.invalid && g.controls.name.touched) { <p class="text-xs text-danger sm:col-span-3">Name is required.</p> }
+                </div>
+              }
+            }
+            <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="addPerson(grp.arr)"><svg lucideIcon="plus" [size]="14" /> Add other (details)</button>
+          </div>
+        </section>
       }
+    </div>
+
+    <section class="zn-surface p-4 md:p-5">
+      <h2 class="zn-section-title mb-1">Delegation of Monitor(s)</h2>
+      <p class="mb-3 text-xs text-ink-soft">
+        @if (p) {
+          {{ blindingDescriptions[p.blinding] }} Duties of the other study type are not applicable (N/A).
+        } @else {
+          Select a project to enable the duties for its type of study.
+        }
+        Primary duties are required and each duty is delegated to one monitor.
+      </p>
+      <div class="zn-table-scroll" formArrayName="monitors">
+        <table class="zn-table rounded-lg border border-line">
+          <thead>
+            <tr>
+              <th rowspan="2">Name of Monitor</th>
+              @for (g of dutyGroups; track g.label) {
+                <th class="text-center" [attr.colspan]="g.duties.length" [class.opacity-50]="p?.blinding !== g.blinding">{{ g.label }}</th>
+              }
+              <th rowspan="2"><span class="sr-only">Actions</span></th>
+            </tr>
+            <tr>
+              @for (g of dutyGroups; track g.label) {
+                @for (duty of g.duties; track duty) {
+                  <th class="text-center" [class.opacity-50]="!duties().includes(duty)" [class.bg-warn-soft]="isUnblinded(duty)" [class.bg-info-soft]="isBlinded(duty)">
+                    {{ duty }}@if (duties().includes(duty) && delegations.isRequired(duty)) {<span class="text-danger"> *</span>}
+                  </th>
+                }
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of monitorRows.controls; track row; let i = $index) {
+              <tr [formGroupName]="i">
+                <td class="min-w-56">
+                  <app-searchable-select formControlName="monitorId" [options]="monitorOptions()" placeholder="Select monitor" />
+                  <span class="text-xs text-ink-soft">{{ users.email(row.controls.monitorId.value) || 'No monitor selected' }}</span>
+                </td>
+                @for (g of dutyGroups; track g.label) {
+                  @for (duty of g.duties; track duty) {
+                    <td class="text-center" formGroupName="duties">
+                      @if (duties().includes(duty)) {
+                        <input type="checkbox" class="zn-check" [formControlName]="duty" [attr.aria-label]="duty + ' duty, monitor row ' + (i + 1)" />
+                      } @else {
+                        <span class="text-xs text-ink-soft">N/A</span>
+                      }
+                    </td>
+                  }
+                }
+                <td>
+                  <button type="button" class="zn-action-btn zn-action-danger" (click)="removeMonitorRow(i)" [attr.aria-label]="'Remove monitor row ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm mt-2" (click)="addMonitorRow()"><svg lucideIcon="plus" [size]="14" /> Add monitor (details)</button>
+      @if (monitorRows.touched && monitorIssues().length) {
+        <ul class="mt-2 list-disc pl-5 text-xs text-danger">
+          @for (issue of monitorIssues(); track issue) { <li>{{ issue }}</li> }
+        </ul>
+      }
+      @if (separationWarning()) {
+        <div class="zn-notice zn-notice-warn mt-3"><svg lucideIcon="triangle-alert" [size]="16" class="mt-0.5 shrink-0" /> {{ separationWarning() }}</div>
+      }
+      <div class="zn-notice zn-notice-info mt-3">
+        <svg lucideIcon="mail" [size]="16" class="mt-0.5 shrink-0" />
+        <span>Once the Project Manager delegates monitoring responsibilities, an email notification is sent to each assigned monitor (from the record page after saving). Each monitor acknowledges the delegation by clicking the acknowledgement link in the email or through login to this module, and completing an electronic signature.</span>
+      </div>
     </section>
 
     <section class="zn-surface p-4 md:p-5">
-      <app-form-field label="Notes" [control]="form.controls.notes">
-        <textarea class="zn-input" rows="2" formControlName="notes" aria-label="Notes"></textarea>
-      </app-form-field>
+      <h2 class="zn-section-title mb-1">Delegated Monitor Acknowledgement</h2>
+      <p class="mb-3 text-xs text-ink-soft">Name of Monitor and acknowledgement list. Acknowledgements are recorded on the record page once the monitors are notified.</p>
+      <ul class="divide-y divide-line-soft rounded-lg border border-line text-sm">
+        @for (id of delegatedMonitorIds(); track id) {
+          <li class="flex items-center justify-between gap-2 px-3 py-2">
+            <span><span class="font-medium">{{ users.name(id) }}</span> <span class="text-xs text-ink-soft">{{ users.email(id) }}</span></span>
+            <span class="zn-badge zn-badge-muted">{{ ackStateLabel(id) }}</span>
+          </li>
+        } @empty {
+          <li class="px-3 py-2 text-ink-soft">No monitors delegated yet.</li>
+        }
+      </ul>
+      <p class="mt-3 text-xs text-ink-soft">Once all delegated monitors have acknowledged the delegation and completed their electronic signatures, the Project Manager (PM) who conducted the discussion receives an automated email confirming that all acknowledgements are complete. The PM then initiates authorization by selecting the checkbox.</p>
+    </section>
+
+    <section class="zn-surface p-4 md:p-5">
+      <h2 class="zn-section-title mb-1">Delegated Monitor Authorization</h2>
+      <p class="text-xs text-ink-soft">Head of Department / VP authorizes by clicking the acknowledgement link in the email or through login to this module, and completing an electronic signature.</p>
+    </section>
+
+    <section class="zn-surface p-4 md:p-5">
+      <h2 class="zn-section-title mb-3">Additional details (optional)</h2>
+      <div class="grid gap-3 md:grid-cols-2">
+        <app-form-field label="Discussion details" [control]="form.controls.discussionDetails">
+          <textarea class="zn-input" rows="3" formControlName="discussionDetails" aria-label="Discussion details"></textarea>
+        </app-form-field>
+        <app-form-field label="Delegated responsibilities" [control]="form.controls.delegatedResponsibilities">
+          <textarea class="zn-input" rows="3" formControlName="delegatedResponsibilities" aria-label="Delegated responsibilities"></textarea>
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="Notes" [control]="form.controls.notes">
+          <textarea class="zn-input" rows="2" formControlName="notes" aria-label="Notes"></textarea>
+        </app-form-field>
+      </div>
     </section>
 
     <div class="sticky bottom-0 -mx-3 flex justify-end gap-2 border-t border-line bg-paper/95 px-3 py-3 md:-mx-5 md:px-5">

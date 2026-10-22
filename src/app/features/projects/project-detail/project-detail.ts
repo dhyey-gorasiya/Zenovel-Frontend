@@ -44,6 +44,7 @@ export class ProjectDetail {
 
   protected readonly relatedPlans = computed(() => this.plans.forProject(this.id()));
   protected readonly relatedDelegations = computed(() => this.delegations.forProject(this.id()));
+  protected readonly delegationUnlocked = computed(() => this.plans.approvedForProject(this.id()).length > 0);
   protected readonly relatedAssignments = computed(() => this.assignments.forProject(this.id()));
   protected readonly relatedReports = computed(() => this.reports.forProject(this.id()));
   protected readonly history = computed(() =>
