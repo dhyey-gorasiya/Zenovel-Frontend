@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard, permissionGuard } from './core/auth/auth.guards';
+import { authGuard, guestGuard, permissionGuard, roleGuard } from './core/auth/auth.guards';
+import { SETTINGS_ROLES } from './core/config/permissions.config';
 
 export const routes: Routes = [
   { path: 'login', canActivate: [guestGuard], title: 'Sign in · Zenovel', loadComponent: () => import('./features/auth/login').then(m => m.Login) },
@@ -15,8 +16,9 @@ export const routes: Routes = [
       { path: 'delegations', canActivate: [permissionGuard], data: { permission: 'delegation.view' }, loadChildren: () => import('./features/delegations/delegations.routes').then(m => m.DELEGATION_ROUTES) },
       { path: 'assignments', canActivate: [permissionGuard], data: { permission: 'assignment.view' }, loadChildren: () => import('./features/assignments/assignments.routes').then(m => m.ASSIGNMENT_ROUTES) },
       { path: 'reports', canActivate: [permissionGuard], data: { permission: 'report.view' }, loadChildren: () => import('./features/reports/reports.routes').then(m => m.REPORT_ROUTES) },
+      { path: 'audit-log', canActivate: [permissionGuard], title: 'Audit Log · Zenovel', data: { permission: 'project.view', title: 'Audit Log' }, loadComponent: () => import('./features/audit-log/audit-log').then(m => m.AuditLog) },
       { path: 'notifications', title: 'Notifications · Zenovel', data: { title: 'Notifications' }, loadComponent: () => import('./features/notifications/notifications').then(m => m.Notifications) },
-      { path: 'settings', title: 'Settings · Zenovel', data: { title: 'Settings' }, loadComponent: () => import('./features/settings/settings').then(m => m.Settings) },
+      { path: 'settings', canActivate: [roleGuard], title: 'Settings · Zenovel', data: { roles: SETTINGS_ROLES, title: 'Settings' }, loadComponent: () => import('./features/settings/settings').then(m => m.Settings) },
       { path: '**', title: 'Not found · Zenovel', data: { title: 'Page not found' }, loadComponent: () => import('./features/not-found').then(m => m.NotFound) },
     ],
   },

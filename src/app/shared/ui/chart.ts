@@ -19,6 +19,17 @@ export interface ChartDatum {
 }
 
 const PALETTE = ['#0f766e', '#14b8a6', '#f59e0b', '#6366f1', '#ef4444', '#64748b', '#22c55e'];
+const MAX_TICK_LINE = 12;
+
+/** Splits a category label into short lines so bar ticks stay horizontal instead of rotating and overlapping. */
+function wrapLabel(label: string): string[] {
+  return label.split(' ').reduce<string[]>((lines, word) => {
+    const last = lines.at(-1);
+    if (last !== undefined && `${last} ${word}`.length <= MAX_TICK_LINE) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(word);
+    return lines;
+  }, []);
+}
 
 /** Thin Chart.js wrapper (doughnut / bar). Emits the clicked segment label for drill-down navigation. */
 @Component({
@@ -52,7 +63,21 @@ export class ChartView implements OnDestroy {
           responsive: true,
           maintainAspectRatio: false,
           plugins: { legend: { display: type === 'doughnut', position: 'right', labels: { color: ink, boxWidth: 12 } } },
-          scales: type === 'bar' ? { x: { ticks: { color: ink }, grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0, color: ink } } } : undefined,
+          scales: type === 'bar'
+            ? {
+                x: {
+                  ticks: {
+                    color: ink,
+                    maxRotation: 0,
+                    callback(value) {
+                      return wrapLabel(this.getLabelForValue(Number(value)));
+                    },
+                  },
+                  grid: { display: false },
+                },
+                y: { beginAtZero: true, ticks: { precision: 0, color: ink } },
+              }
+            : undefined,
           onClick: (_e, elements) => {
             const idx = elements[0]?.index;
             if (idx !== undefined) this.segmentClick.emit(data[idx].label);

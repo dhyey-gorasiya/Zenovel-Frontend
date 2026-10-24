@@ -15,7 +15,6 @@ import { ActivityTimeline } from '../../shared/ui/timeline';
 
 const QUICK_ACTIONS: { label: string; link: string; icon: string; permission: Permission }[] = [
   { label: 'Create Project', link: '/projects/new', icon: 'folder-kanban', permission: 'project.manage' },
-  { label: 'Create Monitoring Plan', link: '/plans/new', icon: 'clipboard-list', permission: 'plan.manage' },
   { label: 'Create Delegation Record', link: '/delegations/new', icon: 'graduation-cap', permission: 'delegation.manage' },
   { label: 'Assign Monitor', link: '/assignments/new', icon: 'user-check', permission: 'assignment.manage' },
   { label: 'Create Monitoring Report', link: '/reports/new', icon: 'file-text', permission: 'report.prepare' },

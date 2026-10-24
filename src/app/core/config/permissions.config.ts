@@ -28,6 +28,9 @@ export type Permission = (typeof PERMISSIONS)[number]['key'];
 
 export const ROLES: Role[] = ['Project Manager', 'Monitor', 'HOD/VP', 'Sponsor'];
 
+/** Fixed by role (not the editable matrix) so the matrix editor can't lock HOD out or grant itself to others. */
+export const SETTINGS_ROLES: Role[] = ['HOD/VP'];
+
 /**
  * Default demo capabilities. The workbook does not define every permission,
  * so this matrix is editable in Settings and persisted in the browser.

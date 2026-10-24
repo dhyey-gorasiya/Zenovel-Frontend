@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { DemoRoleService } from '../../core/auth/demo-role.service';
-import { Permission } from '../../core/config/permissions.config';
+import { Permission, SETTINGS_ROLES } from '../../core/config/permissions.config';
+import { Role } from '../../core/models';
 import { NotificationService } from '../../core/services/notification.service';
 import { Icon } from '../../shared/icons';
 
@@ -10,17 +11,19 @@ interface NavItem {
   label: string;
   icon: string;
   permission?: Permission;
+  roles?: Role[];
 }
 
 const NAV: NavItem[] = [
   { path: '/dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
   { path: '/projects', label: 'Projects', icon: 'folder-kanban', permission: 'project.view' },
-  { path: '/plans', label: 'Monitoring Plans', icon: 'clipboard-list', permission: 'plan.view' },
+  // { path: '/plans', label: 'Monitoring Plans', icon: 'clipboard-list', permission: 'plan.view' },
   { path: '/delegations', label: 'Training & Delegation', icon: 'graduation-cap', permission: 'delegation.view' },
   { path: '/assignments', label: 'Monitor Assignments', icon: 'user-check', permission: 'assignment.view' },
   { path: '/reports', label: 'Monitoring Reports', icon: 'file-text', permission: 'report.view' },
+  { path: '/audit-log', label: 'Audit Log', icon: 'history', permission: 'project.view' },
   { path: '/notifications', label: 'Notifications', icon: 'bell' },
-  { path: '/settings', label: 'Settings', icon: 'settings' },
+  { path: '/settings', label: 'Settings', icon: 'settings', roles: SETTINGS_ROLES },
 ];
 
 @Component({
@@ -37,7 +40,10 @@ export class Sidebar {
   readonly toggle = output<void>();
   readonly navigate = output<void>();
   protected readonly items = computed(() => {
-    this.roles.role();
-    return NAV.filter(n => !n.permission || this.roles.can(n.permission));
+    const role = this.roles.role();
+    return NAV.filter(n =>
+      (!n.permission || this.roles.can(n.permission)) &&
+      (!n.roles || (role !== null && n.roles.includes(role))),
+    );
   });
 }

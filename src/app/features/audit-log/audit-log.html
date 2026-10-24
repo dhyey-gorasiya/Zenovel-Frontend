@@ -1,0 +1,70 @@
+@if (scopedProject(); as sp) {
+<app-page-header [title]="'Audit Log · ' + sp.label" description="Every field change for this project with its previous and new value, who changed it and when.">
+  @if (sp.exists) {
+  <a [routerLink]="['/projects', sp.id]" class="zn-btn zn-btn-ghost"><svg lucideIcon="arrow-left" [size]="16" /> Back to project</a>
+  }
+</app-page-header>
+} @else {
+<app-page-header title="Audit Log" description="Every project field change with its previous and new value, who changed it and when." />
+}
+<app-filter-bar [filters]="filters()" [(search)]="search" [(values)]="filterValues" placeholder="Search project, field, value, user…" />
+<app-data-table [columns]="columns" [rows]="rows()" [actions]="actions" emptyMessage="No project changes recorded yet." initialSortKey="at" />
+
+@if (viewing(); as row) {
+<app-modal [title]="'Field changed: ' + row.label" [subtitle]="row.projectId + ' · ' + row.projectName" width="min(52rem, 100%)" (closed)="viewing.set(null)">
+  <div class="space-y-4 text-sm">
+    <dl class="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-1.5">
+      <dt class="zn-label">Field changed</dt>
+      <dd class="font-semibold text-ink">{{ row.label }}</dd>
+      <dt class="zn-label">Project</dt>
+      <dd>{{ row.projectId }} · {{ row.projectName }}</dd>
+      <dt class="zn-label">Action</dt>
+      <dd><app-status-badge [status]="row.action" /></dd>
+      <dt class="zn-label">Changed by</dt>
+      <dd>{{ row.actorName }}</dd>
+      <dt class="zn-label">Changed on</dt>
+      <dd>{{ formatAt(row.at) }}</dd>
+    </dl>
+
+    <div class="grid gap-3 md:grid-cols-2">
+      <section class="rounded-lg border border-danger/30 bg-danger-soft p-3">
+        <h3 class="zn-label mb-1 text-danger">Old {{ row.label }}</h3>
+        <p class="whitespace-pre-wrap break-words text-ink">{{ row.previous }}</p>
+      </section>
+      <section class="rounded-lg border border-ok/30 bg-ok-soft p-3">
+        <h3 class="zn-label mb-1 text-ok">New {{ row.label }}</h3>
+        <p class="whitespace-pre-wrap break-words text-ink">{{ row.current }}</p>
+      </section>
+    </div>
+
+    @if (viewingEntry(); as e) {
+    @if (e.changes.length > 1) {
+    <div>
+      <h3 class="zn-section-title mb-2">All fields changed in this save ({{ e.changes.length }})</h3>
+      <div class="overflow-x-auto rounded-lg border border-line">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-sunken text-xs text-ink-soft">
+            <tr>
+              <th scope="col" class="px-3 py-2">Field</th>
+              <th scope="col" class="px-3 py-2">Old data</th>
+              <th scope="col" class="px-3 py-2">New data</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of e.changes; track c.field) {
+            <tr class="border-t border-line-soft align-top" [class.bg-accent-soft]="c.field === row.field">
+              <td class="px-3 py-2 font-medium">{{ c.label }}</td>
+              <td class="whitespace-pre-wrap break-words px-3 py-2 text-danger">{{ c.previous }}</td>
+              <td class="whitespace-pre-wrap break-words px-3 py-2 text-ok">{{ c.current }}</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+    }
+    }
+  </div>
+  <ng-container modal-actions><button type="button" class="zn-btn zn-btn-ghost" (click)="viewing.set(null)">Close</button></ng-container>
+</app-modal>
+}

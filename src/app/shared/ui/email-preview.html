@@ -3,7 +3,11 @@
     <div class="space-y-3 text-sm">
       <div class="zn-notice zn-notice-info">
         <svg lucideIcon="info" [size]="16" class="mt-0.5 shrink-0" />
-        <span>This prototype never sends real emails. "Send" records the message in the simulated outbox and creates in-app notifications.</span>
+        @if (email.deliversRealEmail) {
+          <span>"Send" records the message in the outbox and delivers a copy to {{ redirectTo }} instead of the recipients below.</span>
+        } @else {
+          <span>This prototype never sends real emails. "Send" records the message in the simulated outbox and creates in-app notifications.</span>
+        }
       </div>
       <dl class="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-1.5 rounded-lg border border-line p-3">
         <dt class="zn-label">To</dt><dd>{{ p.draft.to.join(', ') }}</dd>

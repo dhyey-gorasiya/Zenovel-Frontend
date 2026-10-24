@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { Permission } from '../config/permissions.config';
+import { Role } from '../models';
 import { AuthService } from './auth.service';
 import { DemoRoleService } from './demo-role.service';
 
@@ -17,4 +18,12 @@ export const permissionGuard: CanActivateFn = route => {
   const permission = route.data['permission'] as Permission | undefined;
   if (!permission || inject(DemoRoleService).can(permission)) return true;
   return inject(Router).createUrlTree(['/dashboard'], { queryParams: { denied: permission } });
+};
+
+/** Route data: `{ roles: ['HOD/VP'], title: 'Settings' }`. Redirects to the dashboard when the role isn't listed. */
+export const roleGuard: CanActivateFn = route => {
+  const roles = route.data['roles'] as Role[] | undefined;
+  const role = inject(DemoRoleService).role();
+  if (!roles || (role && roles.includes(role))) return true;
+  return inject(Router).createUrlTree(['/dashboard'], { queryParams: { denied: route.data['title'] ?? 'restricted page' } });
 };

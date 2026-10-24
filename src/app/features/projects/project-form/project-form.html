@@ -4,7 +4,7 @@
 } @else {
 <app-page-header
   [title]="isDetails() ? 'Complete details · ' + (existing()?.name ?? '') : id() ? 'Edit ' + (existing()?.name ?? '') : 'Create Project'"
-  [description]="isDetails() ? 'Fill in the project details assigned to you. Details entered by HOD/VP are shown read-only.'
+  [description]="isDetails() ? 'Fill in the project details and the Monitoring Plan for this project. Details entered by HOD/VP are shown read-only.'
       : id() ? 'Update project details. Related plans, delegations and reports reference this record by ID.'
       : 'Register the project and assign the Project Manager. The assigned Project Manager completes the remaining details.'">
   <a [routerLink]="id() ? ['/projects', id()] : '/projects'" class="zn-btn zn-btn-ghost"
@@ -19,7 +19,30 @@
 </div>
 }
 
-<form [formGroup]="form" (ngSubmit)="save()" novalidate class="space-y-4">
+@if (isDetails()) {
+<app-tabs [tabs]="tabs()" [(active)]="activeTab" />
+}
+
+<form [formGroup]="form" (ngSubmit)="save()" novalidate class="flex flex-1 flex-col space-y-4">
+  @if (isDetails() && activeTab() !== 'project') {
+  <div class="zn-surface flex flex-wrap items-center gap-2 px-4 py-3 text-sm">
+    @if (plan(); as mp) {
+    <span class="font-semibold">Monitoring Plan {{ mp.id }}</span>
+    <span class="zn-badge zn-badge-muted">v{{ mp.version }}</span>
+    <app-status-badge [status]="mp.status" label="Plan status" />
+    <span class="text-ink-soft">· Sponsor review</span>
+    <app-status-badge [status]="mp.sponsorReview" label="Sponsor review" />
+    } @else {
+    <span class="text-ink-soft">The Monitoring Plan is created as a draft when you first save these tabs.</span>
+    }
+  </div>
+  @if (planLockReason()) {
+  <div class="zn-notice zn-notice-info"><svg lucideIcon="lock" [size]="16" class="mt-0.5 shrink-0" /> {{ planLockReason() }}
+  </div>
+  }
+  <app-project-plan-fields [model]="planForm" [section]="planSection()" [project]="existing()!"
+    [locked]="!!planLockReason()" [attemptedSubmit]="attemptedPlanSubmit()" />
+  } @else {
   @if (isDetails()) {
   <section class="zn-surface p-4 md:p-5">
     <h2 class="zn-section-title mb-1">Project details</h2>
@@ -106,9 +129,17 @@
     <section class="zn-surface p-4 md:p-5" [formGroupName]="party.key">
       <h2 class="zn-section-title mb-3">{{ party.title }}</h2>
       <div class="grid gap-3 sm:grid-cols-2">
+        @if (party.key === 'sponsor') {
+        <app-form-field label="Organisation name" [control]="form.controls.sponsor.controls.name" [required]="true"
+          hint="Only organisations with a sponsor login can review the Monitoring Plan">
+          <app-searchable-select formControlName="name" [options]="sponsorOptions()" [allowEmpty]="false"
+            placeholder="Select sponsor organisation" />
+        </app-form-field>
+        } @else {
         <app-form-field label="Organisation name" [control]="form.get(party.key + '.name')" [required]="true">
           <input class="zn-input" formControlName="name" [attr.aria-label]="party.title + ' name'" />
         </app-form-field>
+        }
         <app-form-field label="Contact person" [control]="form.get(party.key + '.contactPerson')">
           <input class="zn-input" formControlName="contactPerson" [attr.aria-label]="party.title + ' contact person'" />
         </app-form-field>
@@ -206,16 +237,21 @@
       </fieldset>
     </div>
   </section>
+  }
 
   @if (serverError()) {
   <div class="zn-notice zn-notice-danger" role="alert"><svg lucideIcon="circle-alert" [size]="16"
       class="mt-0.5 shrink-0" /> {{ serverError() }}</div>
   }
 
-  <div class="sticky bottom-0 -mx-3 flex justify-end gap-2 border-t border-line bg-paper/95 px-3 py-3 md:-mx-5 md:px-5">
+  <div class="sticky -bottom-3 -mx-3 -mb-3 mt-auto flex justify-end gap-2 border-t border-line bg-paper/95 px-3 py-3 md:-bottom-5 md:-mx-5 md:-mb-5 md:px-5">
     <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()">Cancel</button>
-    <button type="submit" class="zn-btn zn-btn-primary"><svg lucideIcon="save" [size]="16" /> {{ id() ? 'Save changes' :
+    <button type="submit" class="zn-btn" [class.zn-btn-primary]="!isDetails() || !canSubmitPlan()"
+      [class.zn-btn-ghost]="isDetails() && canSubmitPlan()"><svg lucideIcon="save" [size]="16" /> {{ id() ? 'Save changes' :
       'Create project' }}</button>
+    @if (isDetails() && canSubmitPlan()) {
+    <button type="button" class="zn-btn zn-btn-primary" (click)="save(true)"><svg lucideIcon="send" [size]="16" /> Save &amp; submit plan for PM review</button>
+    }
   </div>
 </form>
 }

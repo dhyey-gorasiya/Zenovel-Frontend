@@ -4,7 +4,10 @@ import { AuthService } from '../auth/auth.service';
 import { DataStore } from '../data/data-store.service';
 import { Project } from '../models';
 import { ActivityService } from './activity.service';
+import { EmailService } from './email.service';
 import { NotificationService } from './notification.service';
+import { ProjectAuditService } from './project-audit.service';
+import { UserDirectoryService } from './user-directory.service';
 
 export type ProjectInput = Omit<Project, 'id' | 'updatedAt' | 'createdAt' | 'createdById'>;
 
@@ -23,6 +26,9 @@ export class ProjectService {
   private readonly scope = inject(AccessScopeService);
   private readonly activity = inject(ActivityService);
   private readonly notifications = inject(NotificationService);
+  private readonly email = inject(EmailService);
+  private readonly users = inject(UserDirectoryService);
+  private readonly audit = inject(ProjectAuditService);
 
   readonly visible = computed(() => this.data.projects.items().filter(p => this.scope.project(p)));
 
@@ -68,6 +74,7 @@ export class ProjectService {
       updatedAt: now,
     });
     this.activity.log('Created', 'Project', project.id, project.id, `Project ${project.id} ${project.name} created`);
+    this.audit.record('Created', undefined, project);
     this.notifyAssignedManager(project);
     return project;
   }
@@ -80,6 +87,7 @@ export class ProjectService {
     if (updated) {
       const statusNote = before && before.status !== updated.status ? ` (status ${before.status} → ${updated.status})` : '';
       this.activity.log('Updated', 'Project', id, id, `Project ${id} updated${statusNote}`);
+      this.audit.record('Updated', before, updated);
       if (before && before.projectManagerId !== updated.projectManagerId) this.notifyAssignedManager(updated);
     }
     return updated;
@@ -100,7 +108,7 @@ export class ProjectService {
   delete(id: string): void {
     const p = this.get(id);
     if (!p) return;
-    const linkPrefixes: string[] = [`/projects/${id}`, this.planFormLink(id)];
+    const linkPrefixes: string[] = [`/projects/${id}`, this.legacyPlanFormLink(id)];
     const removeAll = <T extends { id: string; projectId: string }>(items: T[], remove: (id: string) => void, route: string) =>
       items.filter(x => x.projectId === id).forEach(x => {
         linkPrefixes.push(`${route}/${x.id}`);
@@ -113,20 +121,48 @@ export class ProjectService {
     this.data.notifications.items().filter(n => linkPrefixes.some(l => n.link === l || n.link.startsWith(l + '/'))).forEach(n => this.data.notifications.remove(n.id));
     this.data.projects.remove(id);
     this.activity.log('Deleted', 'Project', id, null, `Project ${id} ${p.name} deleted with all dependent records`);
+    this.audit.record('Deleted', p, undefined);
   }
 
-  private planFormLink(projectId: string): string {
+  /** Link used by notifications created before the Monitoring Plan moved into the project form. */
+  private legacyPlanFormLink(projectId: string): string {
     return `/plans/new?projectId=${encodeURIComponent(projectId)}`;
   }
 
-  /** Points the assigned PM to the Monitoring Plan form, prefilled from this project. */
+  private detailsFormLink(projectId: string): string {
+    return `/projects/${projectId}/details?tab=plan`;
+  }
+
+  /** Points the assigned PM to the project's Complete details form, where the Monitoring Plan is prepared. */
   private notifyAssignedManager(p: Project): void {
+    const link = this.detailsFormLink(p.id);
     this.notifications.notify({
       key: `project-${p.id}-assigned-${p.projectManagerId}`,
       recipientIds: [p.projectManagerId],
       title: 'Project assigned to you',
-      message: `${p.id} (${p.name}) is assigned to you. Prepare the Monitoring Plan — project details are prefilled.`,
-      link: this.planFormLink(p.id),
+      message: `${p.id} (${p.name}) is assigned to you. Complete the project details and prepare the Monitoring Plan — project details are prefilled.`,
+      link,
+    });
+    const to = this.users.email(p.projectManagerId);
+    if (!to) return;
+    const sender = this.auth.user()?.name ?? 'Zenovel';
+    this.email.send({
+      to: [to],
+      cc: [],
+      subject: `Project assigned to you — ${p.name} (${p.id})`,
+      body:
+        `Dear ${this.users.name(p.projectManagerId)},\n\n` +
+        `${sender} has assigned project ${p.id} to you.\n\n` +
+        `Project: ${p.name}\n` +
+        `Protocol: ${p.protocolNo} — ${p.protocolTitle}\n` +
+        `Zenovel Project No.: ${p.zenovelProjectNo}\n` +
+        `Sponsor: ${p.sponsor.name}\n\n` +
+        `Open the project in Zenovel to complete the details and prepare the Monitoring Plan.\n\n` +
+        `Regards,\n${sender}`,
+      projectId: p.id,
+      entityType: 'Project',
+      entityId: p.id,
+      link,
     });
   }
 }

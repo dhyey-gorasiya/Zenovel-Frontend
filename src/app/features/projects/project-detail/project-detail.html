@@ -9,6 +9,7 @@
     </div>
     <div class="flex flex-wrap gap-2">
       <a routerLink="/projects" class="zn-btn zn-btn-ghost"><svg lucideIcon="arrow-left" [size]="16" /> Projects</a>
+      <a routerLink="/audit-log" [queryParams]="{ projectId: p.id }" class="zn-btn zn-btn-ghost"><svg lucideIcon="history" [size]="16" /> Get Audit Log</a>
       @if (roles.can('project.completeDetails')) {
         <a [routerLink]="['/projects', p.id, 'details']" class="zn-btn zn-btn-ghost"><svg lucideIcon="pencil" [size]="16" /> Complete details</a>
       }
@@ -93,15 +94,26 @@
             </dl>
           </section>
         }
-      </div>
-    }
-    @case ('plans') {
-      <div class="mb-3 flex justify-end">
-        @if (roles.can('plan.manage')) {
-          <a routerLink="/plans/new" [queryParams]="{ projectId: p.id }" class="zn-btn zn-btn-primary zn-btn-sm"><svg lucideIcon="plus" [size]="14" /> New Monitoring Plan</a>
+
+        @if (roles.can('plan.view')) {
+          <section class="space-y-3 xl:col-span-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h2 class="zn-section-title">Monitoring Plan</h2>
+              @if (roles.can('project.completeDetails') && roles.can('plan.manage')) {
+                <a [routerLink]="['/projects', p.id, 'details']" [queryParams]="{ tab: 'plan' }" class="zn-btn zn-btn-ghost zn-btn-sm"><svg lucideIcon="pencil" [size]="14" /> {{ plan() ? 'Edit plan' : 'Prepare plan' }}</a>
+              }
+            </div>
+            @if (plan(); as mp) {
+              <div class="grid gap-4 xl:grid-cols-[1fr_24rem]">
+                <app-plan-view [plan]="mp" [project]="p" />
+                <div><app-plan-workflow-panel [plan]="mp" /></div>
+              </div>
+            } @else {
+              <p class="zn-surface p-4 text-sm text-ink-soft">The Monitoring Plan has not been prepared yet. The assigned Project Manager fills it in under Complete details.</p>
+            }
+          </section>
         }
       </div>
-      <app-data-table [columns]="planColumns" [rows]="relatedPlans()" emptyMessage="No monitoring plans for this project." />
     }
     @case ('delegations') {
       <div class="mb-3 flex items-center justify-end gap-3">

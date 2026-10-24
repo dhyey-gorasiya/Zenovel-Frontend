@@ -1,4 +1,4 @@
-<div class="mb-4 flex gap-5 overflow-x-auto border-b border-line" role="tablist">
+<div class="zn-tabs mb-4" role="tablist">
   @for (t of tabs(); track t.key) {
     <button type="button" role="tab" class="zn-tab" [class.active]="active() === t.key" [attr.aria-selected]="active() === t.key" (click)="active.set(t.key)">
       {{ t.label }}

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { EMAIL_DELIVERY } from '../../core/config/email.config';
 import { EmailService } from '../../core/services/email.service';
 import { ProjectService } from '../../core/services/project.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -18,6 +19,7 @@ export class EmailPreview {
   private readonly toast = inject(ToastService);
   protected readonly sending = signal(false);
   protected readonly result = signal('');
+  protected readonly redirectTo = EMAIL_DELIVERY.redirectTo;
   protected readonly projectLabel = computed(() => {
     const id = this.email.pending()?.draft.projectId;
     return id ? `${this.projects.name(id)} (${id})` : '—';
@@ -36,7 +38,11 @@ export class EmailPreview {
     setTimeout(() => {
       const sent = this.email.send(p.draft);
       this.result.set(`Recorded as ${sent.id} for ${p.draft.to.join(', ')}.`);
-      this.toast.success(`Simulated email ${sent.id} recorded — no real email was sent.`);
+      this.toast.success(
+        this.email.deliversRealEmail
+          ? `Email ${sent.id} recorded and a copy is being delivered to ${EMAIL_DELIVERY.redirectTo}.`
+          : `Simulated email ${sent.id} recorded — no real email was sent.`,
+      );
       setTimeout(() => {
         this.sending.set(false);
         this.result.set('');

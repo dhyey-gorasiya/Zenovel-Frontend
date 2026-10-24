@@ -1,14 +1,17 @@
-<aside class="flex h-full flex-col border-r border-line bg-paper transition-[width] duration-200"
+<aside class="flex h-full flex-col border-r border-line bg-paper transition-[width] duration-200 px-2"
   [class]="collapsed() ? 'w-[4.25rem]' : 'w-64'">
-  <div class="flex items-center gap-2.5 border-b border-line px-3 py-3">
-    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-white">
-      <svg lucideIcon="stethoscope" [size]="18" />
+  <div class="flex items-center gap-2.5 border-b-2 border-line px-3 py-3">
+    @if (collapsed()) {
+    <div class="h-9 w-9 shrink-0 overflow-hidden rounded-lg dark:bg-white dark:p-0.5">
+      <img src="assets/img/Zenovel-Web-Logo.svg" alt="Zenovel" class="h-full w-auto max-w-none" />
     </div>
-    @if (!collapsed()) {
-    <div class="min-w-0">
-      <div class="zn-brand text-lg leading-none text-ink">Zenovel</div>
-      <div class="mt-0.5 truncate text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-ink-soft">Clinical Trial
-        Monitoring</div>
+    } @else {
+    <div class="min-w-0 flex items-center justify-center">
+      <div class="inline-flex rounded-md dark:bg-white dark:px-1.5 dark:py-1 p-1">
+        <img src="assets/img/Zenovel-Web-Logo.svg" alt="Zenovel" class="h-10 w-auto" />
+      </div>
+      <!-- <div class="mt-0.5 truncate text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-ink-soft">Clinical Trial
+        Monitoring</div> -->
     </div>
     }
     @if (mobile()) {
@@ -17,7 +20,7 @@
     }
   </div>
 
-  <nav class="flex-1 space-y-0.5 overflow-y-auto p-2" aria-label="Main navigation">
+  <nav class="flex-1 space-y-0.5 overflow-y-auto py-2" aria-label="Main navigation">
     @for (n of items(); track n.path) {
     <a [routerLink]="n.path" routerLinkActive="active" #rla="routerLinkActive"
       [attr.aria-current]="rla.isActive ? 'page' : null" class="zn-nav-link relative"

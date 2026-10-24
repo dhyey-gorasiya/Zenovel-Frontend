@@ -1,8 +1,3 @@
-<app-page-header title="Monitoring Plans" description="Plans prepared by Project Managers, reviewed by the HOD and approved by the sponsor.">
-  @if (roles.can('plan.manage')) {
-    <a routerLink="/plans/new" class="zn-btn zn-btn-primary"><svg lucideIcon="plus" [size]="16" /> Create Monitoring Plan</a>
-  }
-</app-page-header>
+<app-page-header title="Monitoring Plans" description="One plan per project, prepared by the Project Manager in the project's Complete details form, reviewed by the HOD and approved by the sponsor." />
 <app-filter-bar [filters]="filters()" [(search)]="search" [(values)]="filterValues" placeholder="Search plan ID, project, protocol, author…" />
 <app-data-table [columns]="columns" [rows]="rows()" [actions]="actions" emptyMessage="No monitoring plans match your filters." initialSortKey="updatedAt" />
-

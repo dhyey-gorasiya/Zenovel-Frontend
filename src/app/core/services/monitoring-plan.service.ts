@@ -5,8 +5,9 @@ import { DemoRoleService } from '../auth/demo-role.service';
 import { DEFAULT_PLAN_VISITS, defaultPlanVisitTypes } from '../config/domain.config';
 import { AppSettingsService } from '../data/app-settings.service';
 import { DataStore } from '../data/data-store.service';
-import { MonitoringPlan, Project, RiskItem, SimSignature } from '../models';
+import { EmailDraft, MonitoringPlan, Project, RiskItem, SimSignature } from '../models';
 import { ActivityService } from './activity.service';
+import { EmailService } from './email.service';
 import { NotificationService } from './notification.service';
 import { UserDirectoryService } from './user-directory.service';
 
@@ -44,6 +45,7 @@ export class MonitoringPlanService {
   private readonly scope = inject(AccessScopeService);
   private readonly activity = inject(ActivityService);
   private readonly notifications = inject(NotificationService);
+  private readonly email = inject(EmailService);
   private readonly users = inject(UserDirectoryService);
   private readonly settings = inject(AppSettingsService);
 
@@ -60,6 +62,11 @@ export class MonitoringPlanService {
 
   forProject(projectId: string): MonitoringPlan[] {
     return this.visible().filter(p => p.projectId === projectId);
+  }
+
+  /** A project has one Monitoring Plan; older data may hold several, in which case the most recently created one is used. */
+  planFor(projectId: string): MonitoringPlan | undefined {
+    return this.forProject(projectId).reduce<MonitoringPlan | undefined>((latest, p) => (!latest || p.createdAt > latest.createdAt ? p : latest), undefined);
   }
 
   label(id: string | null | undefined): string {
@@ -110,6 +117,7 @@ export class MonitoringPlanService {
       monitoringSchedule: '',
       otherRequirements: '',
       visitPlan: DEFAULT_PLAN_VISITS.map(v => ({ ...v })),
+      additionalVisit: false,
       additionalVisitNote: '',
       visitTypes: defaultPlanVisitTypes(),
       communicationAmongTeam: true,
@@ -119,8 +127,11 @@ export class MonitoringPlanService {
       risks: [],
       protocolSummary: [],
       observationGrading: this.settings.observationGrades().join(' / '),
+      reportTimelineApplicable: false,
       reportTimeline: '',
+      documentSharingApplicable: false,
       documentSharing: '',
+      archivingApplicable: false,
       archiving: '',
       communicationProcedures: '',
       additionalProcedures: '',
@@ -130,6 +141,8 @@ export class MonitoringPlanService {
   }
 
   create(input: PlanInput, submit: boolean): MonitoringPlan {
+    const existing = this.data.plans.items().find(p => p.projectId === input.projectId);
+    if (existing) throw new Error(`Project ${input.projectId} already has Monitoring Plan ${existing.id}.`);
     const u = this.auth.user();
     const now = new Date().toISOString();
     const plan = this.data.plans.insert({
@@ -254,6 +267,8 @@ export class MonitoringPlanService {
       signature,
     );
     this.notifyHod(p, `${id} (${this.projectName(p)}) was signed by ${this.auth.user()?.name} for direct sign.`);
+    const draft = this.reviewEmailDraft(p, 'hod');
+    if (draft.to.length) this.email.send(draft);
   }
 
   /** Direct Sign route, final step: the sponsor signs after the HOD. */
@@ -294,6 +309,37 @@ export class MonitoringPlanService {
     };
     this.data.plans.update(p.id, { ...patch, reviews: [...p.reviews, review] });
     this.activity.log(action, 'Monitoring Plan', p.id, p.projectId, `${p.id}: ${action}${comment ? ` — ${comment}` : ''}`);
+  }
+
+  /** Simulated review email. Direct sign addresses every HOD/VP; sponsor review uses the To/CC entered by the PM. */
+  reviewEmailDraft(p: MonitoringPlan, kind: 'hod' | 'sponsor', to: string[] = [], cc: string[] = []): EmailDraft {
+    const project = this.data.projects.get(p.projectId);
+    const name = project?.name ?? p.projectId;
+    const me = this.auth.user()?.email ?? '';
+    const recipients = kind === 'hod' ? this.users.approvers().map(u => u.email).filter(Boolean) : to;
+    return {
+      to: recipients,
+      cc: kind === 'hod' ? (me && !recipients.includes(me) ? [me] : []) : cc,
+      subject: kind === 'hod'
+        ? `Monitoring Plan ${p.id} awaiting your approval — ${name}`
+        : `Monitoring Plan ${p.id} v${p.version} for review — ${name}`,
+      body:
+        `Dear ${kind === 'hod' ? 'Head of Department' : 'Sponsor team'},\n\n` +
+        (kind === 'hod'
+          ? `${this.auth.user()?.name ?? 'The Project Manager'} has final-saved Monitoring Plan ${p.id} and sent it for your approval.\n\n`
+          : `Please review Monitoring Plan ${p.id} (version ${p.version}).\n\n`) +
+        `Project: ${p.projectId} — ${name}\n` +
+        `Protocol: ${project?.protocolNo || '—'} — ${project?.protocolTitle || '—'}\n` +
+        `Zenovel Project No.: ${project?.zenovelProjectNo || '—'}\n` +
+        `Sponsor: ${project?.sponsor.name || '—'}\n` +
+        `Monitoring Plan: ${p.id} (version ${p.version})\n\n` +
+        `Open the project in Zenovel to review it.\n\n` +
+        `Regards,\n${this.auth.user()?.name ?? 'Zenovel'}`,
+      projectId: p.projectId,
+      entityType: 'Monitoring Plan',
+      entityId: p.id,
+      link: `/projects/${p.projectId}`,
+    };
   }
 
   private notifyHod(p: MonitoringPlan, message: string): void {

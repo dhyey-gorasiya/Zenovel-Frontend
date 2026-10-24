@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { SETTINGS_ROLES } from '../../core/config/permissions.config';
 import { AppNotification } from '../../core/models';
 import { NotificationService } from '../../core/services/notification.service';
 import { SearchService } from '../../core/services/search.service';
@@ -39,6 +40,10 @@ export class Topbar {
   protected readonly query = signal('');
   protected readonly results = computed(() => this.search.search(this.query()));
   protected readonly latest = computed(() => this.notifications.mine().slice(0, 6));
+  protected readonly canOpenSettings = computed(() => {
+    const role = this.auth.user()?.role;
+    return !!role && SETTINGS_ROLES.includes(role);
+  });
   protected readonly initials = computed(() =>
     (this.auth.user()?.name ?? '').replace(/^Dr\.?\s+/, '').split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase(),
   );

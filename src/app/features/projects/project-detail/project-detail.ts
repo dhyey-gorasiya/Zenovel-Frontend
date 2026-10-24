@@ -2,7 +2,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { DemoRoleService } from '../../../core/auth/demo-role.service';
-import { Delegation, MonitorAssignment, MonitoringPlan, MonitoringReport } from '../../../core/models';
+import { Delegation, MonitorAssignment, MonitoringReport } from '../../../core/models';
 import { ActivityService } from '../../../core/services/activity.service';
 import { DelegationService } from '../../../core/services/delegation.service';
 import { MonitorAssignmentService } from '../../../core/services/monitor-assignment.service';
@@ -17,10 +17,12 @@ import { ErrorState } from '../../../shared/ui/states';
 import { StatusBadge } from '../../../shared/ui/status-badge';
 import { TabItem, Tabs } from '../../../shared/ui/tabs';
 import { ActivityTimeline } from '../../../shared/ui/timeline';
+import { PlanView } from '../../plans/plan-view/plan-view';
+import { PlanWorkflowPanel } from '../../plans/plan-workflow-panel/plan-workflow-panel';
 import { ProjectUiActions } from '../project-ui-actions';
 
 @Component({
-  imports: [RouterLink, Icon, Tabs, DataTable, StatusBadge, ErrorState, ActivityTimeline, DatePipe, DecimalPipe],
+  imports: [RouterLink, Icon, Tabs, DataTable, StatusBadge, ErrorState, ActivityTimeline, PlanView, PlanWorkflowPanel, DatePipe, DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './project-detail.html',
 })
@@ -42,7 +44,7 @@ export class ProjectDetail {
   protected readonly project = computed(() => this.projects.getVisible(this.id()));
   protected readonly activeTab = linkedSignal(() => this.tab() ?? 'overview');
 
-  protected readonly relatedPlans = computed(() => this.plans.forProject(this.id()));
+  protected readonly plan = computed(() => this.plans.planFor(this.id()));
   protected readonly relatedDelegations = computed(() => this.delegations.forProject(this.id()));
   protected readonly delegationUnlocked = computed(() => this.plans.approvedForProject(this.id()).length > 0);
   protected readonly relatedAssignments = computed(() => this.assignments.forProject(this.id()));
@@ -53,22 +55,12 @@ export class ProjectDetail {
 
   protected readonly tabs = computed<TabItem[]>(() => {
     const t: TabItem[] = [{ key: 'overview', label: 'Overview' }];
-    if (this.roles.can('plan.view')) t.push({ key: 'plans', label: 'Monitoring Plans', count: this.relatedPlans().length });
     if (this.roles.can('delegation.view')) t.push({ key: 'delegations', label: 'Training & Delegation', count: this.relatedDelegations().length });
     if (this.roles.can('assignment.view')) t.push({ key: 'assignments', label: 'Monitor Assignments', count: this.relatedAssignments().length });
     if (this.roles.can('report.view')) t.push({ key: 'reports', label: 'Monitoring Reports', count: this.relatedReports().length });
     t.push({ key: 'activity', label: 'Activity History', count: this.history().length });
     return t;
   });
-
-  protected readonly planColumns: TableColumn<MonitoringPlan>[] = [
-    { key: 'id', label: 'Plan ID', type: 'link', link: p => `/plans/${p.id}` },
-    { key: 'version', label: 'Version', value: p => `v${p.version}` },
-    { key: 'createdByName', label: 'Created By' },
-    { key: 'status', label: 'Plan Status', type: 'badge' },
-    { key: 'sponsorReview', label: 'Sponsor Review', type: 'badge' },
-    { key: 'updatedAt', label: 'Last Updated', type: 'muted', value: p => p.updatedAt.slice(0, 10) },
-  ];
 
   protected readonly delegationColumns: TableColumn<Delegation>[] = [
     { key: 'id', label: 'Delegation ID', type: 'link', link: d => `/delegations/${d.id}` },

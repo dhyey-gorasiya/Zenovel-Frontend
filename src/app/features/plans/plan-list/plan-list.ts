@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { DemoRoleService } from '../../../core/auth/demo-role.service';
 import { PLAN_STATUSES, SPONSOR_REVIEW_STATUSES } from '../../../core/config/domain.config';
 import { MonitoringPlan } from '../../../core/models';
@@ -9,13 +9,12 @@ import { MonitoringPlanService } from '../../../core/services/monitoring-plan.se
 import { ProjectService } from '../../../core/services/project.service';
 import { DataTable } from '../../../shared/data-table/data-table';
 import { TableAction, TableColumn } from '../../../shared/data-table/data-table.models';
-import { Icon } from '../../../shared/icons';
 import { FilterBar, FilterDef, matches, toOptions } from '../../../shared/ui/filter-bar';
 import { PageHeader } from '../../../shared/ui/page-header';
 import { PlanUiActions } from '../plan-ui-actions';
 
 @Component({
-  imports: [DataTable, FilterBar, PageHeader, RouterLink, Icon],
+  imports: [DataTable, FilterBar, PageHeader],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './plan-list.html',
 })
@@ -66,7 +65,7 @@ export class PlanList {
 
   protected readonly actions: TableAction<MonitoringPlan>[] = [
     { label: 'View', icon: 'view', onClick: p => this.router.navigate(['/plans', p.id]) },
-    { label: 'Edit', icon: 'edit', show: p => this.plans.actions(p).edit, onClick: p => this.router.navigate(['/plans', p.id, 'edit']) },
+    { label: 'Edit', icon: 'edit', show: p => this.plans.actions(p).edit && this.roles.can('project.completeDetails'), onClick: p => this.router.navigate(['/projects', p.projectId, 'details'], { queryParams: { tab: 'plan' } }) },
     { label: 'Delete', icon: 'delete', show: p => this.plans.actions(p).delete, onClick: p => this.ui.delete(p) },
   ];
 

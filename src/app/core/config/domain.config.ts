@@ -2,6 +2,7 @@ import {
   AssignmentStatus,
   AuthorizationStatus,
   Blinding,
+  CheckpointStatus,
   CommunicationChannel,
   MonitorDuty,
   PlanStatus,
@@ -42,16 +43,19 @@ export const VISIT_TYPES = [
 
 /** "Strategy and Scope of Monitoring" visit table defaults from the workbook. */
 export const DEFAULT_PLAN_VISITS: PlanVisit[] = [
-  { visitType: 'Site Initiation Visit', days: 1, applicable: true, comments: '' },
-  { visitType: 'Check In and Dosing Day (Period 01)', days: 2, applicable: true, comments: '' },
-  { visitType: 'Check In and Dosing Day (Period 02)', days: 2, applicable: true, comments: '' },
-  { visitType: 'In-Process Bioanalytical / Phase', days: 2, applicable: false, comments: '' },
-  { visitType: 'Retrospective Bioanalytical / Phase', days: 2, applicable: false, comments: '' },
-  { visitType: 'Site Closeout Visit', days: 1, applicable: true, comments: '' },
+  { visitType: 'Site Initiation Visit', days: 1, applicable: true, remote: false, comments: '' },
+  { visitType: 'Check In and Dosing Day (Period 01)', days: 2, applicable: true, remote: false, comments: '' },
+  { visitType: 'Check In and Dosing Day (Period 02)', days: 2, applicable: true, remote: false, comments: '' },
+  { visitType: 'In-Process Bioanalytical / Phase', days: 2, applicable: false, remote: false, comments: '' },
+  { visitType: 'Retrospective Bioanalytical / Phase', days: 2, applicable: false, remote: false, comments: '' },
+  { visitType: 'Site Closeout Visit', days: 1, applicable: true, remote: false, comments: '' },
 ];
 
+/** "Checkpoints" options of the Type of Monitoring Visit table. */
+export const CHECKPOINT_STATUSES: CheckpointStatus[] = ['Yes', 'No', 'N/A'];
+
 export const defaultPlanVisitTypes = (): PlanVisitType[] =>
-  VISIT_TYPES.map(visitType => ({ visitType, applicable: false, checkpoints: '' }));
+  VISIT_TYPES.map(visitType => ({ visitType, applicable: false, checkpointStatus: '', checkpoints: '' }));
 
 /** Placeholder SOP references. Replace with the client's controlled SOP list. */
 export const ZENOVEL_SOPS = [

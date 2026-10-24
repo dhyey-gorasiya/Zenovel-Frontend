@@ -111,16 +111,27 @@ export type PlanStatus = 'Draft' | 'In PM Review' | 'Final Saved' | 'Pending HOD
 /** 'Direct Sign' marks the Direct Sign route (no sponsor comment loop) until the sponsor signs. */
 export type SponsorReviewStatus = 'Not Submitted' | 'Pending' | 'Changes Requested' | 'Approved' | 'Direct Sign';
 
+/*
+ * Optional ticks on plan records (`remote`, `checkpointStatus`, `additionalVisit`, `*Applicable`)
+ * are absent on plans saved before the template sheet's tick fields were added.
+ */
+
 export interface PlanVisit {
   visitType: string;
+  /** Onsite number of days. */
   days: number;
   applicable: boolean;
+  remote?: boolean;
   comments: string;
 }
+
+export type CheckpointStatus = 'Yes' | 'No' | 'N/A';
 
 export interface PlanVisitType {
   visitType: string;
   applicable: boolean;
+  checkpointStatus?: CheckpointStatus | '';
+  /** Checkpoint notes. */
   checkpoints: string;
 }
 
@@ -181,6 +192,7 @@ export interface MonitoringPlan extends Entity {
   monitoringSchedule: string;
   otherRequirements: string;
   visitPlan: PlanVisit[];
+  additionalVisit?: boolean;
   additionalVisitNote: string;
   visitTypes: PlanVisitType[];
   communicationAmongTeam: boolean;
@@ -190,8 +202,11 @@ export interface MonitoringPlan extends Entity {
   risks: RiskItem[];
   protocolSummary: ProtocolSummaryItem[];
   observationGrading: string;
+  reportTimelineApplicable?: boolean;
   reportTimeline: string;
+  documentSharingApplicable?: boolean;
   documentSharing: string;
+  archivingApplicable?: boolean;
   archiving: string;
   communicationProcedures: string;
   additionalProcedures: string;
@@ -369,6 +384,28 @@ export interface ActivityItem extends Entity {
   entityId: string;
   projectId: string | null;
   text: string;
+}
+
+/* ---------- Project audit log ---------- */
+
+export type AuditAction = 'Created' | 'Updated' | 'Deleted';
+
+/** Display values are captured at save time so the log stays accurate after users or projects change. */
+export interface AuditFieldChange {
+  field: string;
+  label: string;
+  previous: string;
+  current: string;
+}
+
+export interface ProjectAuditEntry extends Entity {
+  at: string;
+  actorId: string;
+  actorName: string;
+  action: AuditAction;
+  projectId: string;
+  projectName: string;
+  changes: AuditFieldChange[];
 }
 
 export interface EmailDraft {

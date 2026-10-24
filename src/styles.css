@@ -59,6 +59,12 @@
   body {
     margin: 0;
     min-height: 100dvh;
+    overflow-wrap: break-word;
+  }
+
+  /* Grid items default to min-width: auto, letting wide content (tables, charts) stretch tracks past the viewport. */
+  :where(.grid, .zn-kv)>* {
+    min-width: 0;
   }
 
   ::selection {
@@ -69,6 +75,44 @@
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+  }
+
+  /* Chromium ignores ::-webkit-scrollbar once scrollbar-color is set, so the standard properties are Firefox-only. */
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in srgb, var(--color-ink-soft) 35%, transparent) transparent;
+    }
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--color-ink-soft) 30%, transparent);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    min-height: 32px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--color-accent);
+  }
+
+  ::-webkit-scrollbar-button {
+    display: none;
   }
 
   button:not(:disabled),
@@ -316,7 +360,7 @@
   .zn-kv {
     display: grid;
     gap: 0.75rem 1.25rem;
-    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr));
     font-size: 0.875rem;
   }
 
@@ -435,6 +479,37 @@
     background: color-mix(in srgb, var(--color-accent) 4%, transparent);
   }
 
+  .zn-sheet {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+
+  .zn-sheet>tbody>tr>th,
+  .zn-sheet>tbody>tr>td {
+    padding: 0.6rem 0.85rem;
+    vertical-align: top;
+    text-align: left;
+    border: 1px solid var(--color-line);
+  }
+
+  .zn-sheet>tbody>tr>th {
+    width: 16rem;
+    min-width: 12rem;
+    font-weight: 600;
+    color: var(--color-ink-soft);
+    background: var(--color-sunken);
+  }
+
+  .zn-sheet>tbody>tr.zn-sheet-section>th {
+    width: auto;
+    color: var(--color-accent);
+    background: var(--color-accent-soft);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
   .zn-badge {
     display: inline-flex;
     align-items: center;
@@ -525,6 +600,7 @@
 
   .zn-modal {
     width: min(36rem, 100%);
+    max-width: 100%;
     max-height: min(92dvh, 52rem);
     overflow: auto;
     background: var(--color-paper);
@@ -548,14 +624,27 @@
     box-shadow: 0 10px 24px -18px rgba(15, 118, 110, 0.6);
   }
 
+  .zn-tabs {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    overflow-x: auto;
+    background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+    border-radius: 0.75rem;
+  }
+
   .zn-tab {
-    position: relative;
-    padding: 0.6rem 0.2rem;
-    font-size: 0.85rem;
-    font-weight: 600;
+    flex: 1 1 0;
+    min-width: max-content;
+    padding: 0.45rem 1rem;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 500;
     color: var(--color-ink-soft);
     white-space: nowrap;
-    border-bottom: 2px solid transparent;
+    background: transparent;
+    border-radius: 0.55rem;
+    transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
   }
 
   .zn-tab:hover {
@@ -563,8 +652,10 @@
   }
 
   .zn-tab.active {
-    color: var(--color-accent);
-    border-bottom-color: var(--color-accent);
+    color: var(--color-ink);
+    font-weight: 600;
+    background: var(--color-paper);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px color-mix(in srgb, var(--color-line) 70%, transparent);
   }
 
   .zn-fieldset {
@@ -573,7 +664,7 @@
     padding: 0.9rem;
   }
 
-  .zn-fieldset > legend {
+  .zn-fieldset>legend {
     padding: 0 0.35rem;
     font-size: 0.8rem;
     font-weight: 700;
@@ -594,8 +685,13 @@
 }
 
 @keyframes zn-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes zn-rise {
@@ -603,6 +699,7 @@
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -610,8 +707,13 @@
 }
 
 @keyframes zn-slide-in {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 @media print {
@@ -619,7 +721,8 @@
     display: none !important;
   }
 
-  html, body {
+  html,
+  body {
     background: white !important;
   }
 }

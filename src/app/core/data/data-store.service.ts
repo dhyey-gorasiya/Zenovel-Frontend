@@ -8,6 +8,7 @@ import {
   MonitoringPlan,
   MonitoringReport,
   Project,
+  ProjectAuditEntry,
   SimulatedEmail,
   User,
 } from '../models';
@@ -38,6 +39,7 @@ export class DataStore {
   readonly notifications = this.store<AppNotification>('notifications', seed.seedNotifications);
   readonly activity = this.store<ActivityItem>('activity', seed.seedActivity);
   readonly emails = this.store<SimulatedEmail>('emails', seed.seedEmails);
+  readonly projectAudit = this.store<ProjectAuditEntry>('projectAudit', seed.seedProjectAudit);
 
   nextId<T extends Entity>(prefix: string, store: EntityStore<T>): string {
     return this.ids.next(prefix, store.items());
@@ -50,7 +52,7 @@ export class DataStore {
   /** Restores the original sample dataset (Settings → Reset Demo Data). */
   resetAll(): void {
     this.ids.reset();
-    [this.users, this.projects, this.plans, this.delegations, this.assignments, this.reports, this.notifications, this.activity, this.emails]
+    [this.users, this.projects, this.plans, this.delegations, this.assignments, this.reports, this.notifications, this.activity, this.emails, this.projectAudit]
       .forEach(s => (s as EntityStore<Entity>).reset());
     this.issues.set([]);
   }

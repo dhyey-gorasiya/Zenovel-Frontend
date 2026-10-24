@@ -12,8 +12,8 @@
     </div>
     <div class="flex flex-wrap gap-2">
       <a routerLink="/plans" class="zn-btn zn-btn-ghost"><svg lucideIcon="arrow-left" [size]="16" /> Plans</a>
-      @if (actions().edit) {
-        <a [routerLink]="['/plans', p.id, 'edit']" class="zn-btn zn-btn-ghost"><svg lucideIcon="pencil" [size]="16" /> Edit</a>
+      @if (actions().edit && roles.can('project.completeDetails')) {
+        <a [routerLink]="['/projects', p.projectId, 'details']" [queryParams]="{ tab: 'plan' }" class="zn-btn zn-btn-ghost"><svg lucideIcon="pencil" [size]="16" /> Edit in project</a>
       }
       @if (actions().delete) {
         <button type="button" class="zn-btn zn-btn-danger" (click)="remove()"><svg lucideIcon="trash" [size]="16" /> Delete</button>

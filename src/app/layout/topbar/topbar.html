@@ -1,4 +1,4 @@
-<header class="zn-no-print flex items-center gap-2 border-b border-line bg-paper px-3 py-2 md:gap-3 md:px-5">
+<header class="zn-no-print flex items-center gap-2 border-b border-line bg-paper px-3 py-2.5 md:gap-3 md:px-5">
   <button type="button" class="zn-icon-btn lg:hidden" aria-label="Open navigation" (click)="menu.emit()"><svg lucideIcon="menu" [size]="20" /></button>
 
   <div class="min-w-0 flex-1">
@@ -26,7 +26,7 @@
       [value]="query()" (input)="query.set($any($event.target).value); openMenu.set('search')" (focus)="openMenu.set('search')"
       (keydown.enter)="results()[0] && go(results()[0].link)" />
     @if (openMenu() === 'search' && query().trim().length >= 2) {
-      <div class="absolute right-0 z-40 mt-1 w-[26rem] overflow-hidden rounded-lg border border-line bg-paper shadow-lg">
+      <div class="absolute right-0 z-40 mt-1 w-[min(26rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-line bg-paper shadow-lg">
         @for (r of results(); track r.type + r.id) {
           <button type="button" class="flex w-full items-start gap-3 px-3 py-2 text-left text-sm hover:bg-mist" (click)="go(r.link)">
             <span class="mt-0.5 w-24 shrink-0 text-[0.65rem] font-bold uppercase tracking-wide text-accent">{{ r.type }}</span>
@@ -95,10 +95,12 @@
           <div class="border-b border-line px-3 py-3">
             <p class="font-semibold">{{ u.name }}</p>
             <p class="text-xs text-ink-soft">{{ u.email }}</p>
-            <p class="mt-1 text-xs"><span class="zn-badge zn-badge-review">{{ u.role }}</span> <span class="text-ink-soft">{{ u.title }} · {{ u.organization }}</span></p>
+            <p class="mt-1 text-xs"><span class="zn-badge zn-badge-review">{{ u.title }}</span> <span class="text-ink-soft"> · {{ u.organization }}</span></p>
           </div>
-          <p class="border-b border-line bg-warn-soft px-3 py-2 text-[0.7rem] text-warn">Prototype sign-in. Demo roles are not a substitute for server-side authorization.</p>
-          <a routerLink="/settings" class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-mist" (click)="closeAll()"><svg lucideIcon="settings" [size]="16" /> Settings</a>
+          <!-- <p class="border-b border-line bg-warn-soft px-3 py-2 text-[0.7rem] text-warn">Prototype sign-in. Demo roles are not a substitute for server-side authorization.</p> -->
+          @if (canOpenSettings()) {
+            <a routerLink="/settings" class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-mist" (click)="closeAll()"><svg lucideIcon="settings" [size]="16" /> Settings</a>
+          }
           <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-danger hover:bg-danger-soft" (click)="logout.emit()">
             <svg lucideIcon="log-out" [size]="16" /> Sign out
           </button>

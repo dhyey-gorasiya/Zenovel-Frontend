@@ -1,0 +1,382 @@
+@let m = model();
+@let d = m.form.controls.details.controls;
+@let s = m.form.controls.strategy.controls;
+@let r = m.form.controls.reporting.controls;
+@let p = project();
+
+@switch (section()) {
+  @case ('plan') {
+    <section class="zn-surface overflow-hidden">
+      <div class="zn-card-head">
+        <h2 class="zn-section-title">Monitoring Plan Preparation</h2>
+        <span class="text-xs text-ink-soft">Rows marked <span class="zn-badge zn-badge-muted">Fetched</span> come from the project record.</span>
+      </div>
+      <div class="zn-table-scroll">
+        <table class="zn-sheet">
+          <tbody>
+            <tr class="zn-sheet-section"><th colspan="2">Project details</th></tr>
+            <tr><th scope="row">Project Title / Protocol Title</th><td>{{ p.protocolTitle }} <span class="zn-badge zn-badge-muted ml-1">Fetched</span></td></tr>
+            <tr><th scope="row">CRO Project No. / Protocol No.</th><td>{{ p.protocolNo }} <span class="zn-badge zn-badge-muted ml-1">Fetched</span></td></tr>
+            <tr>
+              <th scope="row"><label for="mp-pv">CRO Protocol Version No.; Date and Amendment details (if any)</label> <span class="text-danger">*</span></th>
+              <td>
+                <div class="grid gap-2 md:grid-cols-3">
+                  <div>
+                    <input id="mp-pv" class="zn-input" [formControl]="d.protocolVersionNo" placeholder="Version No." />
+                    @if (error(d.protocolVersionNo); as e) { <p class="mt-1 text-xs text-danger" role="alert">{{ e }}</p> }
+                  </div>
+                  <app-date-picker [formControl]="d.protocolVersionDate" ariaLabel="Protocol version date" />
+                  <input class="zn-input" [formControl]="d.amendmentDetails" placeholder="Amendment details" aria-label="Amendment details" />
+                </div>
+              </td>
+            </tr>
+            <tr><th scope="row">Sponsor Project No.</th><td>{{ p.sponsorProjectNo || '—' }} <span class="zn-badge zn-badge-muted ml-1">Fetched</span></td></tr>
+            <tr><th scope="row">CRO Details</th><td>{{ p.cro.name }} · {{ p.cro.email }} <span class="zn-badge zn-badge-muted ml-1">Fetched</span></td></tr>
+            <tr><th scope="row">Sponsor Details</th><td>{{ p.sponsor.name }} · {{ p.sponsor.email }} <span class="zn-badge zn-badge-muted ml-1">Fetched</span></td></tr>
+            <tr><th scope="row">Zenovel Project No.</th><td>{{ p.zenovelProjectNo }} <span class="zn-badge zn-badge-muted ml-1">Fetched</span></td></tr>
+            <tr>
+              <th scope="row"><label for="mp-reg">Regulatory Guideline</label> <span class="text-danger">*</span></th>
+              <td>
+                <input id="mp-reg" class="zn-input" [formControl]="d.regulatoryGuideline" />
+                @if (error(d.regulatoryGuideline); as e) { <p class="mt-1 text-xs text-danger" role="alert">{{ e }}</p> }
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><label for="mp-ref">Reference Product Information</label></th>
+              <td>
+                <input id="mp-ref" class="zn-input" [formControl]="d.referenceProductInfo" />
+                @if (p.studyType === 'BA/BE') { <p class="mt-1 text-xs text-ink-soft">Recommended for BA/BE studies</p> }
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Zenovel SOPs</th>
+              <td>
+                <div class="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                  @for (sop of sops; track sop) {
+                    <label class="flex items-start gap-2">
+                      <input type="checkbox" class="zn-check mt-0.5" [disabled]="locked()" [checked]="d.sops.value.includes(sop)" (change)="m.toggleSop(sop, $any($event.target).checked)" />
+                      {{ sop }}
+                    </label>
+                  }
+                </div>
+              </td>
+            </tr>
+
+            <tr class="zn-sheet-section"><th colspan="2">Strategy and Scope of Monitoring (applicable section tick)</th></tr>
+            <tr>
+              <th scope="row">Visit plan</th>
+              <td class="p-0">
+                <table class="zn-table">
+                  <thead>
+                    <tr><th rowspan="2">Tick</th><th colspan="2">Onsite</th><th colspan="2">Remote</th></tr>
+                    <tr><th>Type of visit</th><th>Number of days</th><th>Tick</th><th>Comments</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (g of m.visitPlan.controls; track g) {
+                      <tr [class.bg-accent-soft]="g.controls.applicable.value">
+                        <td><input type="checkbox" class="zn-check" [formControl]="g.controls.applicable" [attr.aria-label]="g.controls.visitType.value + ' applicable'" /></td>
+                        <td class="font-medium">{{ g.controls.visitType.value }}</td>
+                        <td class="w-28">
+                          <input type="number" class="zn-input py-1" min="0" max="30" [formControl]="g.controls.days" [attr.aria-label]="g.controls.visitType.value + ' onsite days'" />
+                          @if (error(g.controls.days); as e) { <p class="mt-1 text-xs text-danger" role="alert">{{ e }}</p> }
+                        </td>
+                        <td><input type="checkbox" class="zn-check" [formControl]="g.controls.remote" [attr.aria-label]="g.controls.visitType.value + ' remote'" /></td>
+                        <td><input class="zn-input py-1" [formControl]="g.controls.comments" [attr.aria-label]="g.controls.visitType.value + ' comments'" /></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Additional Visit Note</th>
+              <td>
+                <label class="flex items-center gap-2"><input type="checkbox" class="zn-check" [formControl]="s.additionalVisit" /> Additional visit applicable</label>
+                @if (s.additionalVisit.value) {
+                  <input class="zn-input mt-2" [formControl]="s.additionalVisitNote" placeholder="Additional visit note" aria-label="Additional visit note" />
+                }
+              </td>
+            </tr>
+
+            <tr class="zn-sheet-section"><th colspan="2">Type of Monitoring Visit (tick)</th></tr>
+            <tr>
+              <th scope="row">Visit types &amp; checkpoints</th>
+              <td class="p-0">
+                <table class="zn-table">
+                  <thead><tr><th>Tick</th><th>Visit</th><th>Checkpoints</th><th>Checkpoint notes</th></tr></thead>
+                  <tbody>
+                    @for (g of m.visitTypes.controls; track g; let i = $index) {
+                      <tr [class.bg-accent-soft]="g.controls.applicable.value">
+                        <td><input type="checkbox" class="zn-check" [formControl]="g.controls.applicable" [attr.aria-label]="g.controls.visitType.value + ' applicable'" /></td>
+                        <td class="font-medium whitespace-nowrap">{{ g.controls.visitType.value }}</td>
+                        <td class="whitespace-nowrap">
+                          <div class="flex gap-3" role="radiogroup" [attr.aria-label]="g.controls.visitType.value + ' checkpoints'">
+                            @for (o of checkpointStatuses; track o) {
+                              <label class="flex items-center gap-1"><input type="radio" class="zn-check" [name]="'mp-cp-' + i" [value]="o" [formControl]="g.controls.checkpointStatus" /> {{ o }}</label>
+                            }
+                          </div>
+                        </td>
+                        <td><input class="zn-input py-1" [formControl]="g.controls.checkpoints" placeholder="Checkpoint notes" [attr.aria-label]="g.controls.visitType.value + ' checkpoint notes'" /></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+
+            <tr class="zn-sheet-section"><th colspan="2">Communication plan</th></tr>
+            <tr><th scope="row">Communication amongst Zenovel team</th><td><input type="checkbox" class="zn-check" [formControl]="r.communicationAmongTeam" aria-label="Communication amongst Zenovel team" /></td></tr>
+            <tr><th scope="row">Communication with sponsor</th><td><input type="checkbox" class="zn-check" [formControl]="r.communicationWithSponsor" aria-label="Communication with sponsor" /></td></tr>
+            <tr><th scope="row">Grading of observations</th><td><input type="checkbox" class="zn-check" [formControl]="r.gradingOfObservations" aria-label="Grading of observations" /></td></tr>
+            <tr>
+              <th scope="row">Communication channel</th>
+              <td class="p-0">
+                <table class="zn-table">
+                  <thead><tr><th>Channel</th><th>Name (tick)</th><th>Details</th></tr></thead>
+                  <tbody>
+                    @for (ch of channels; track ch) {
+                      @let manualDetails = ch !== 'Zenovel Management';
+                      <tr class="align-top">
+                        <td class="font-medium whitespace-nowrap">{{ ch }}</td>
+                        <td class="min-w-48">
+                          @if (ch === 'Sponsor') {
+                            <span class="text-xs text-ink-soft">Entered manually</span>
+                          } @else {
+                            <div class="space-y-1">
+                              @for (o of m.contactOptions()[ch]; track o.value) {
+                                <label class="flex items-center gap-2">
+                                  <input type="checkbox" class="zn-check" [disabled]="locked()" [checked]="m.isPicked(ch, o.value)" (change)="m.togglePick(ch, o.value, $any($event.target).checked)" />
+                                  {{ o.label }}
+                                </label>
+                              } @empty {
+                                <span class="text-xs text-ink-soft">No users available</span>
+                              }
+                            </div>
+                          }
+                        </td>
+                        <td class="min-w-80 space-y-2">
+                          @for (g of m.contactsFor(ch); track g; let i = $index) {
+                            <div class="flex items-start gap-2">
+                              @if (g.controls.userId.value) {
+                                <span class="w-40 shrink-0 pt-1.5 text-sm font-medium">{{ g.controls.name.value }}</span>
+                              } @else {
+                                <div class="w-40 shrink-0">
+                                  <input class="zn-input py-1" [formControl]="g.controls.name" placeholder="Name" [attr.aria-label]="ch + ' contact ' + (i + 1) + ' name'" />
+                                  @if (error(g.controls.name)) { <p class="mt-1 text-xs text-danger" role="alert">Contact name is required.</p> }
+                                </div>
+                              }
+                              @if (manualDetails) {
+                                <input class="zn-input flex-1 py-1" [formControl]="g.controls.details" placeholder="Details (email, phone…)" [attr.aria-label]="ch + ' contact ' + (i + 1) + ' details'" />
+                              } @else {
+                                <span class="pt-1.5 text-sm text-ink-soft">{{ g.controls.details.value }}</span>
+                              }
+                              @if (!locked() && !g.controls.userId.value) {
+                                <button type="button" class="zn-action-btn zn-action-danger" (click)="m.remove(m.contacts, m.contacts.controls.indexOf(g))" [attr.aria-label]="'Remove ' + ch + ' contact ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button>
+                              }
+                            </div>
+                          }
+                          @if (!locked() && manualDetails) {
+                            <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="m.addContact(ch)"><svg lucideIcon="plus" [size]="14" /> Add details</button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+
+            @for (f of [
+              { tick: r.reportTimelineApplicable, c: r.reportTimeline, label: 'Monitoring Report Timeline' },
+              { tick: r.documentSharingApplicable, c: r.documentSharing, label: 'Sharing of Document' },
+              { tick: r.archivingApplicable, c: r.archiving, label: 'Archival' }
+            ]; track f.label) {
+              <tr>
+                <th scope="row">{{ f.label }}</th>
+                <td>
+                  <input type="checkbox" class="zn-check" [formControl]="f.tick" [attr.aria-label]="f.label" />
+                  @if (f.tick.value) {
+                    <input class="zn-input mt-2" [formControl]="f.c" placeholder="Details (optional)" [attr.aria-label]="f.label + ' details'" />
+                  }
+                </td>
+              </tr>
+            }
+            <tr>
+              <th scope="row">Monitoring Plan Template Upload</th>
+              <td>
+                <app-file-upload [formControl]="r.templateDocument" label="Upload plan template" accept=".doc,.docx,.pdf" />
+                <p class="mt-1 text-xs text-ink-soft">Metadata only (prototype).</p>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Protocol Upload</th>
+              <td>
+                <app-file-upload [formControl]="d.protocolDocument" label="Upload protocol" />
+                <p class="mt-1 text-xs text-ink-soft">Metadata only. The simulated AI does not read this file.</p>
+              </td>
+            </tr>
+
+            <tr class="zn-sheet-section"><th colspan="2">Additional plan details (optional)</th></tr>
+            <tr><th scope="row"><label for="mp-scope">Scope of Work</label></th><td><textarea id="mp-scope" class="zn-input" rows="2" [formControl]="s.scopeOfWork"></textarea></td></tr>
+            <tr><th scope="row"><label for="mp-approach">Monitoring Approach</label></th><td><textarea id="mp-approach" class="zn-input" rows="2" [formControl]="s.monitoringApproach"></textarea></td></tr>
+            <tr>
+              <th scope="row">Strategy</th>
+              <td>
+                <div class="flex flex-wrap gap-5">
+                  <label class="flex items-center gap-2"><input type="checkbox" class="zn-check" [formControl]="s.onsite" /> Onsite monitoring</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" class="zn-check" [formControl]="s.remote" /> Remote monitoring</label>
+                </div>
+              </td>
+            </tr>
+            @for (f of [
+              { c: s.visitFrequency, label: 'Visit Frequency', id: 'mp-freq', ph: 'e.g. Each dosing period' },
+              { c: s.visitDuration, label: 'Visit Duration', id: 'mp-dur', ph: 'e.g. 1–2 days' },
+              { c: s.communicationMethods, label: 'Communication Methods', id: 'mp-comm', ph: 'e.g. Email, teleconference' },
+              { c: s.monitoringSchedule, label: 'Monitoring Schedule', id: 'mp-sched', ph: '' },
+              { c: s.otherRequirements, label: 'Other monitoring requirements', id: 'mp-other', ph: '' },
+              { c: r.observationGrading, label: 'Observation Grading', id: 'mp-grade', ph: '' }
+            ]; track f.id) {
+              <tr><th scope="row"><label [for]="f.id">{{ f.label }}</label></th><td><input [id]="f.id" class="zn-input" [formControl]="f.c" [placeholder]="f.ph" /></td></tr>
+            }
+            <tr><th scope="row"><label for="mp-cproc">Communication Procedures</label></th><td><textarea id="mp-cproc" class="zn-input" rows="2" [formControl]="r.communicationProcedures"></textarea></td></tr>
+            <tr><th scope="row"><label for="mp-addproc">Additional Monitoring Procedures</label></th><td><textarea id="mp-addproc" class="zn-input" rows="2" [formControl]="r.additionalProcedures"></textarea></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @case ('risk') {
+    <section class="zn-surface space-y-3 p-4 md:p-5">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="zn-section-title">Risk assessment</h2>
+          <p class="text-xs text-ink-soft">Identify study-specific risks; assess severity, likelihood, detectability and priority. RPN = Severity × Likelihood × Detectability (each 1–5).</p>
+        </div>
+        @if (!locked()) {
+          <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="m.addRisk()"><svg lucideIcon="plus" [size]="14" /> Add risk</button>
+        }
+      </div>
+      @if (attemptedSubmit() && m.risks.length === 0) {
+        <p class="zn-notice zn-notice-danger">Add at least one risk before submitting.</p>
+      }
+      @if (!locked()) {
+        <app-plan-ai-panel mode="risk" [context]="aiContext()" [existingCount]="m.risks.length"
+          (accepted)="acceptAi('risk', $event, false)" (replaced)="acceptAi('risk', $event, true)" />
+      }
+      <div class="zn-table-scroll rounded-lg border border-line">
+        <table class="zn-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Risk description *</th><th>Category *</th><th>Severity</th><th>Likelihood</th><th>Detectability</th><th>Priority</th>
+              <th>Mitigation actions *</th><th>Responsible role *</th><th>Milestone</th><th>Monitoring indicators</th><th>Escalation triggers</th>
+              <th>Residual risk</th><th>Source reference</th>@if (!locked()) {<th><span class="sr-only">Actions</span></th>}
+            </tr>
+          </thead>
+          <tbody>
+            @for (g of m.risks.controls; track g; let i = $index) {
+              @let c = g.controls;
+              <tr class="align-top">
+                <td class="font-medium">
+                  {{ i + 1 }}
+                  @if (c.aiGenerated.value) { <span class="zn-badge zn-badge-warn mt-1 block w-max">AI · simulated</span> }
+                </td>
+                <td class="min-w-56">
+                  <textarea class="zn-input min-h-10 py-1" rows="2" [formControl]="c.description" [attr.aria-label]="'Risk ' + (i + 1) + ' description'"></textarea>
+                  @if (error(c.description); as e) { <p class="mt-1 text-xs text-danger" role="alert">{{ e }}</p> }
+                </td>
+                <td class="min-w-40">
+                  <select class="zn-input py-1" [formControl]="c.category" [attr.aria-label]="'Risk ' + (i + 1) + ' category'">
+                    <option value="">Select…</option>
+                    @for (cat of categories; track cat) { <option [value]="cat">{{ cat }}</option> }
+                  </select>
+                  @if (error(c.category); as e) { <p class="mt-1 text-xs text-danger" role="alert">{{ e }}</p> }
+                </td>
+                @for (f of [{ c: c.severity, l: 'Severity' }, { c: c.likelihood, l: 'Likelihood' }, { c: c.detectability, l: 'Detectability' }]; track f.l) {
+                  <td class="w-20">
+                    <select class="zn-input px-2 py-1" [formControl]="f.c" [attr.aria-label]="'Risk ' + (i + 1) + ' ' + f.l">
+                      @for (n of scale; track n) { <option [ngValue]="n">{{ n }}</option> }
+                    </select>
+                  </td>
+                }
+                <td class="whitespace-nowrap">
+                  <app-status-badge [status]="plans.priority(m.rpnOf(g))" />
+                  <span class="mt-1 block text-xs text-ink-soft">RPN {{ m.rpnOf(g) }}</span>
+                </td>
+                <td class="min-w-56">
+                  <textarea class="zn-input min-h-10 py-1" rows="2" [formControl]="c.mitigation" [attr.aria-label]="'Risk ' + (i + 1) + ' mitigation'"></textarea>
+                  @if (error(c.mitigation); as e) { <p class="mt-1 text-xs text-danger" role="alert">{{ e }}</p> }
+                </td>
+                <td class="min-w-44">
+                  <select class="zn-input py-1" [formControl]="c.responsibleRole" [attr.aria-label]="'Risk ' + (i + 1) + ' responsible role'">
+                    <option value="">Select…</option>
+                    @for (role of responsibleRoles; track role) { <option [value]="role">{{ role }}</option> }
+                  </select>
+                  @if (error(c.responsibleRole); as e) { <p class="mt-1 text-xs text-danger" role="alert">{{ e }}</p> }
+                </td>
+                <td class="min-w-36"><input class="zn-input py-1" [formControl]="c.milestone" [attr.aria-label]="'Risk ' + (i + 1) + ' milestone'" /></td>
+                <td class="min-w-40"><input class="zn-input py-1" [formControl]="c.indicators" [attr.aria-label]="'Risk ' + (i + 1) + ' indicators'" /></td>
+                <td class="min-w-40"><input class="zn-input py-1" [formControl]="c.escalationTriggers" [attr.aria-label]="'Risk ' + (i + 1) + ' escalation triggers'" /></td>
+                <td class="min-w-36"><input class="zn-input py-1" [formControl]="c.residualRisk" [attr.aria-label]="'Risk ' + (i + 1) + ' residual risk'" /></td>
+                <td class="min-w-40"><input class="zn-input py-1" [formControl]="c.sourceRef" placeholder="Refer protocol Section No." [attr.aria-label]="'Risk ' + (i + 1) + ' source reference'" /></td>
+                @if (!locked()) {
+                  <td><button type="button" class="zn-action-btn zn-action-danger" (click)="m.remove(m.risks, i)" [attr.aria-label]="'Remove risk ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button></td>
+                }
+              </tr>
+            } @empty {
+              <tr><td colspan="15" class="text-ink-soft">No risks yet. Add risks manually or generate simulated suggestions.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @case ('summary') {
+    <section class="zn-surface space-y-3 p-4 md:p-5">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="zn-section-title">Protocol summary</h2>
+          <p class="text-xs text-ink-soft">Prepare the protocol summary section of the plan. Include "Refer protocol Section No." for every summary item.</p>
+        </div>
+        @if (!locked()) {
+          <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="m.addSummary()"><svg lucideIcon="plus" [size]="14" /> Add item</button>
+        }
+      </div>
+      @if (!locked()) {
+        <app-plan-ai-panel mode="summary" [context]="aiContext()" [existingCount]="m.summary.length"
+          (accepted)="acceptAi('summary', $event, false)" (replaced)="acceptAi('summary', $event, true)" />
+      }
+      <div class="zn-table-scroll rounded-lg border border-line">
+        <table class="zn-table">
+          <thead><tr><th>#</th><th>Item heading *</th><th>Summary *</th><th>Refer protocol Section No.</th>@if (!locked()) {<th><span class="sr-only">Actions</span></th>}</tr></thead>
+          <tbody>
+            @for (g of m.summary.controls; track g; let i = $index) {
+              @let c = g.controls;
+              <tr class="align-top">
+                <td class="font-medium">
+                  {{ i + 1 }}
+                  @if (c.aiGenerated.value) { <span class="zn-badge zn-badge-warn mt-1 block w-max">AI · simulated</span> }
+                </td>
+                <td class="min-w-48">
+                  <input class="zn-input py-1" [formControl]="c.heading" placeholder="Item heading" [attr.aria-label]="'Summary item ' + (i + 1) + ' heading'" />
+                  @if (error(c.heading); as e) { <p class="mt-1 text-xs text-danger" role="alert">{{ e }}</p> }
+                </td>
+                <td class="min-w-72">
+                  <textarea class="zn-input min-h-10 py-1" rows="2" [formControl]="c.summary" placeholder="Summary" [attr.aria-label]="'Summary item ' + (i + 1) + ' text'"></textarea>
+                  @if (error(c.summary); as e) { <p class="mt-1 text-xs text-danger" role="alert">{{ e }}</p> }
+                </td>
+                <td class="min-w-44"><input class="zn-input py-1" [formControl]="c.sourceSection" placeholder="Refer protocol Section No." [attr.aria-label]="'Summary item ' + (i + 1) + ' source section'" /></td>
+                @if (!locked()) {
+                  <td><button type="button" class="zn-action-btn zn-action-danger" (click)="m.remove(m.summary, i)" [attr.aria-label]="'Remove summary item ' + (i + 1)"><svg lucideIcon="trash" [size]="16" /></button></td>
+                }
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="text-ink-soft">No protocol summary items yet. Add them manually or use the simulated assistant.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+}

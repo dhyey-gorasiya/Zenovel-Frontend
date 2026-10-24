@@ -13,6 +13,7 @@ import {
   MonitoringReport,
   PartyDetails,
   Project,
+  ProjectAuditEntry,
   ReportContent,
   SimulatedEmail,
   User,
@@ -390,6 +391,8 @@ export const seedActivity = (): ActivityItem[] => [
   act('ACT-011', -6, 'USR-013', 'Sofia Kim', 'Feedback', 'Monitoring Plan', 'MP-006', 'PRJ-006', 'Sponsor requested changes on MP-006'),
   act('ACT-012', -14, 'USR-001', 'Vivek Patel', 'Authorization requested', 'Delegation', 'DEL-003', 'PRJ-005', 'HOD/VP authorization initiated for DEL-003'),
 ];
+
+export const seedProjectAudit = (): ProjectAuditEntry[] => [];
 
 export const seedEmails = (): SimulatedEmail[] => [
   {

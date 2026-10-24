@@ -45,8 +45,12 @@
   <app-pagination [total]="filtered().length" [(page)]="page" [(size)]="size" />
 </div>
 } @else {
-<div class="zn-notice zn-notice-info mb-3"><svg lucideIcon="info" [size]="16" class="mt-0.5 shrink-0" /> These emails
-  were simulated. No email was delivered to any recipient.</div>
+<div class="zn-notice zn-notice-info mb-3"><svg lucideIcon="info" [size]="16" class="mt-0.5 shrink-0" />
+  @if (email.deliversRealEmail) {
+  A copy of each email is delivered to {{ redirectTo }}. The listed recipients did not receive it.
+  } @else {
+  These emails were simulated. No email was delivered to any recipient.
+  }</div>
 <div class="zn-table-card">
   <ul class="divide-y divide-line">
     @for (e of email.outbox(); track e.id) {

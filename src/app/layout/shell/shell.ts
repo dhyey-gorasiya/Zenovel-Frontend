@@ -40,7 +40,11 @@ export class Shell {
   }
 
   async logout(): Promise<void> {
-    const ok = await this.dialogs.confirm({ title: 'Sign out?', message: 'You will return to the sign-in page. Your demo data stays in this browser.', confirmText: 'Sign out' });
+    const ok = await this.dialogs.confirm({
+      title: 'Sign out?',
+      message: 'You\'ll be signed out of Zenovel and taken back to the sign-in page.',
+      confirmText: 'sign out',
+    });
     if (!ok) return;
     this.auth.logout();
     this.router.navigateByUrl('/login');

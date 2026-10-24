@@ -1,6 +1,7 @@
 import { DatePipe, TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { EMAIL_DELIVERY } from '../../core/config/email.config';
 import { AppNotification, SimulatedEmail } from '../../core/models';
 import { EmailService } from '../../core/services/email.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -28,6 +29,7 @@ export class Notifications {
   protected readonly page = signal(0);
   protected readonly size = signal(10);
   protected readonly viewing = signal<SimulatedEmail | null>(null);
+  protected readonly redirectTo = EMAIL_DELIVERY.redirectTo;
 
   protected readonly filtered = computed(() => {
     const f = this.filter();

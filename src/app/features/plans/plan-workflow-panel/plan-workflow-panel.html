@@ -46,12 +46,18 @@
       @if (a.sendToSponsor) {
         <button type="button" class="zn-btn zn-btn-primary zn-btn-sm" [disabled]="!!disabledReason()" (click)="openShare()"><svg lucideIcon="mail" [size]="14" /> {{ p.sponsorReview === 'Changes Requested' ? 'Resubmit to sponsor' : 'Share with sponsor for review' }}</button>
       }
+      @if (a.directSign) {
+        <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" [disabled]="!!disabledReason()" (click)="openShare('direct')"><svg lucideIcon="signature" [size]="14" /> Direct sign (HOD, then sponsor)</button>
+      }
       @if (a.pmRespond) {
         <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="pmRespond()"><svg lucideIcon="message-square" [size]="14" /> Respond to sponsor comments</button>
       }
       @if (a.sponsorDecide) {
         <button type="button" class="zn-btn zn-btn-ok zn-btn-sm" (click)="sponsorApprove()"><svg lucideIcon="badge-check" [size]="14" /> Approve &amp; sign off</button>
         <button type="button" class="zn-btn zn-btn-ghost zn-btn-sm" (click)="sponsorChanges()"><svg lucideIcon="message-square" [size]="14" /> Request changes</button>
+      }
+      @if (a.sponsorSign) {
+        <button type="button" class="zn-btn zn-btn-ok zn-btn-sm" (click)="sponsorSign()"><svg lucideIcon="signature" [size]="14" /> Sign off (sponsor)</button>
       }
       @if (noActions()) {
         <p class="text-sm text-ink-soft">No review actions are available to your role at this stage.</p>
@@ -66,7 +72,12 @@
 </section>
 
 @if (sharing()) {
-  <app-modal title="Share with sponsor for review" subtitle="Enter To / CC recipients; a simulated email preview follows." (closed)="sharing.set(false)">
+  @let direct = shareMode() === 'direct';
+  <app-modal
+    [title]="direct ? 'Direct sign' : 'Share with sponsor for review'"
+    [subtitle]="direct ? 'Enter the sponsor signatories. You sign now, then the HOD approves and the sponsor signs off.' : 'Enter To / CC recipients; a simulated email preview follows.'"
+    (closed)="sharing.set(false)"
+  >
     <form [formGroup]="shareForm" class="space-y-3" (ngSubmit)="share()">
       <app-form-field label="To" [control]="shareForm.controls.to" [required]="true" hint="Comma-separated email addresses">
         <input class="zn-input" formControlName="to" aria-label="To" />
@@ -78,7 +89,11 @@
     </form>
     <ng-container modal-actions>
       <button type="button" class="zn-btn zn-btn-ghost" (click)="sharing.set(false)">Cancel</button>
-      <button type="button" class="zn-btn zn-btn-primary" (click)="share()"><svg lucideIcon="mail" [size]="16" /> Preview email</button>
+      @if (direct) {
+        <button type="button" class="zn-btn zn-btn-primary" (click)="share()"><svg lucideIcon="signature" [size]="16" /> Continue to sign</button>
+      } @else {
+        <button type="button" class="zn-btn zn-btn-primary" (click)="share()"><svg lucideIcon="mail" [size]="16" /> Preview email</button>
+      }
     </ng-container>
   </app-modal>
 }

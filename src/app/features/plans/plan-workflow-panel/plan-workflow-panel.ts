@@ -43,11 +43,13 @@ export class PlanWorkflowPanel {
   protected readonly noActions = computed(() => !Object.entries(this.actions()).some(([k, v]) => v && k !== 'edit' && k !== 'delete'));
   protected readonly reversedReviews = computed(() => [...this.plan().reviews].reverse());
   protected readonly sharing = signal(false);
+  /** The To/CC modal serves both "Share with sponsor for review" and "Direct sign". */
+  protected readonly shareMode = signal<'review' | 'direct'>('review');
   protected readonly shareForm = this.fb.nonNullable.group({ to: ['', [Validators.required, emailListValidator]], cc: ['', emailListValidator] });
 
   stageDone(i: number): boolean {
     const p = this.plan();
-    if (i === 0) return ['Pending HOD Approval', 'HOD Approved', 'Approved'].includes(p.status);
+    if (i === 0) return ['Final Saved', 'Pending HOD Approval', 'HOD Approved', 'Approved'].includes(p.status);
     if (i === 1) return p.status === 'HOD Approved' || p.status === 'Approved';
     return p.sponsorReview === 'Approved';
   }
@@ -62,7 +64,7 @@ export class PlanWorkflowPanel {
     if (comment === null) return;
     const sig = await this.sign('Prepared by Project Manager', 'I confirm I have reviewed this monitoring plan and it is ready for HOD review.');
     if (!sig) return;
-    this.run(() => this.plans.pmFinalSave(this.plan().id, comment, sig), 'Plan prepared and sent for HOD approval.');
+    this.run(() => this.plans.pmFinalSave(this.plan().id, comment, sig), 'Plan final saved. Share it with the sponsor, or use Direct sign — that step emails them a link to review the project.');
   }
 
   async pmReturn(): Promise<void> {
@@ -83,7 +85,8 @@ export class PlanWorkflowPanel {
     if (comment) this.run(() => this.plans.hodReject(this.plan().id, comment), 'Plan rejected and returned to the PM.');
   }
 
-  openShare(): void {
+  openShare(mode: 'review' | 'direct' = 'review'): void {
+    this.shareMode.set(mode);
     const p = this.plan();
     const project = this.projects.get(p.projectId);
     const to = p.sponsorTo || [project?.sponsor.email, ...this.users.sponsorUsers(project?.sponsor.name ?? '').map(u => u.email)].filter((x, i, arr): x is string => !!x && arr.indexOf(x) === i).join(', ');
@@ -96,20 +99,13 @@ export class PlanWorkflowPanel {
     if (this.shareForm.invalid) return;
     const { to, cc } = this.shareForm.getRawValue();
     const p = this.plan();
-    const project = this.projects.get(p.projectId);
     this.sharing.set(false);
-    const sent = await this.email.preview({
-      to: splitEmails(to),
-      cc: splitEmails(cc),
-      subject: `Monitoring Plan ${p.id} v${p.version} for review — ${project?.name}`,
-      body:
-        `Dear Sponsor team,\n\nPlease review Monitoring Plan ${p.id} (version ${p.version}) for ${project?.name}, protocol ${project?.protocolNo}.\n\n` +
-        `Open the plan in Zenovel to provide review comments or approve and sign off.\n\nRegards,\n${this.auth.user()?.name}`,
-      projectId: p.projectId,
-      entityType: 'Monitoring Plan',
-      entityId: p.id,
-      link: `/plans/${p.id}`,
-    });
+    if (this.shareMode() === 'direct') {
+      const sig = await this.sign('Direct sign — prepared by Project Manager', 'I confirm this monitoring plan is ready for HOD approval and sponsor signature.');
+      if (sig) this.run(() => this.plans.directSign(p.id, to, cc, sig), 'Plan signed. The HOD has a simulated email with a link to review the project.');
+      return;
+    }
+    const sent = await this.email.preview(this.plans.reviewEmailDraft(p, 'sponsor', splitEmails(to), splitEmails(cc)));
     if (sent) this.run(() => this.plans.sendToSponsor(p.id, to, cc), 'Plan shared with sponsor for review.');
   }
 
@@ -124,6 +120,14 @@ export class PlanWorkflowPanel {
     const sig = await this.sign('Approved by Sponsor — sign off', 'On behalf of the sponsor, I approve this monitoring plan.');
     if (!sig) return;
     this.run(() => this.plans.sponsorApprove(this.plan().id, comment, sig), 'Plan approved and signed off.');
+  }
+
+  async sponsorSign(): Promise<void> {
+    const comment = await this.dialogs.prompt({ title: 'Sponsor sign-off', label: 'Comments (optional)', confirmText: 'Continue to sign' });
+    if (comment === null) return;
+    const sig = await this.sign('Approved by Sponsor — sign off', 'On behalf of the sponsor, I approve and sign off this monitoring plan.');
+    if (!sig) return;
+    this.run(() => this.plans.sponsorSign(this.plan().id, comment, sig), 'Plan signed off and approved.');
   }
 
   async sponsorChanges(): Promise<void> {
