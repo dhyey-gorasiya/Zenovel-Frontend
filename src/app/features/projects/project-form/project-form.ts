@@ -12,7 +12,6 @@ import { ToastService } from '../../../core/services/toast.service';
 import { UserDirectoryService } from '../../../core/services/user-directory.service';
 import { Icon } from '../../../shared/icons';
 import { DatePicker } from '../../../shared/ui/date-picker';
-import { FileUpload } from '../../../shared/ui/file-upload';
 import { FormField } from '../../../shared/ui/form-field';
 import { PageHeader } from '../../../shared/ui/page-header';
 import { SearchableSelect, SelectOption } from '../../../shared/ui/searchable-select';
@@ -20,7 +19,7 @@ import { ErrorState } from '../../../shared/ui/states';
 import { StatusBadge } from '../../../shared/ui/status-badge';
 import { TabItem, Tabs } from '../../../shared/ui/tabs';
 import { emailValidator, rangeValidator } from '../../../shared/validators';
-import { PLAN_SECTION_LABELS, PlanFormModel, PlanFormValue, PlanSection } from '../../plans/plan-form.model';
+import { PLAN_SECTION_LABELS, PlanFormModel, PlanFormValue } from '../../plans/plan-form.model';
 import { ProjectPlanFields } from '../project-plan-fields/project-plan-fields';
 
 type VisitGroup = FormGroup<{ visitType: FormControl<string>; days: FormControl<number> }>;
@@ -31,11 +30,11 @@ export type ProjectFormMode = 'setup' | 'details';
 const SETUP_FIELDS = ['zenovelProjectNo', 'protocolNo', 'sponsorProjectNo', 'protocolTitle', 'sponsor', 'cro', 'projectManagerId', 'backupProjectManagerId', 'scope'] as const;
 const DETAILS_FIELDS = ['name', 'status', 'studyType', 'blinding', 'startDate', 'endDate', 'description', 'notes', 'protocolDocument'] as const;
 
-type DetailsTab = 'project' | PlanSection;
-const DETAILS_TABS: DetailsTab[] = ['project', 'plan', 'risk', 'summary'];
+type DetailsTab = 'project' | 'plan';
+const DETAILS_TABS: DetailsTab[] = ['project', 'plan'];
 
 @Component({
-  imports: [ReactiveFormsModule, RouterLink, Icon, FormField, DatePicker, FileUpload, SearchableSelect, PageHeader, ErrorState, StatusBadge, Tabs, ProjectPlanFields],
+  imports: [ReactiveFormsModule, RouterLink, Icon, FormField, DatePicker, SearchableSelect, PageHeader, ErrorState, StatusBadge, Tabs, ProjectPlanFields],
   providers: [PlanFormModel],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './project-form.html',
@@ -63,7 +62,6 @@ export class ProjectForm {
   protected readonly isDetails = computed(() => this.mode() === 'details');
 
   protected readonly activeTab = linkedSignal<string>(() => (DETAILS_TABS.includes(this.tab() as DetailsTab) ? this.tab()! : 'project'));
-  protected readonly planSection = computed(() => this.activeTab() as PlanSection);
   protected readonly plan = signal<MonitoringPlan | undefined>(undefined);
   /** Why the plan tabs are read-only; empty when the user can edit the plan. */
   protected readonly planLockReason = signal('');
@@ -72,15 +70,10 @@ export class ProjectForm {
     const p = this.plan();
     return !this.planLockReason() && (!p || p.status === 'Draft' || p.status === 'Rejected');
   });
-  protected readonly tabs = computed<TabItem[]>(() => {
-    this.planForm.value();
-    return [
-      { key: 'project', label: 'Project details' },
-      { key: 'plan', label: PLAN_SECTION_LABELS.plan },
-      { key: 'risk', label: PLAN_SECTION_LABELS.risk, count: this.planForm.risks.length },
-      { key: 'summary', label: PLAN_SECTION_LABELS.summary, count: this.planForm.summary.length },
-    ];
-  });
+  protected readonly tabs: TabItem[] = [
+    { key: 'project', label: 'Project details' },
+    { key: 'plan', label: PLAN_SECTION_LABELS.plan },
+  ];
 
   protected readonly studyTypes = STUDY_TYPES;
   protected readonly blindings = BLINDING_TYPES;
@@ -260,8 +253,9 @@ export class ProjectForm {
       this.planForm.form.markAllAsTouched();
       const invalid = this.planForm.invalidSections();
       if (invalid.length) {
-        this.activeTab.set(invalid[0]);
-        this.toast.error(`Complete the highlighted tab(s): ${invalid.map(s => PLAN_SECTION_LABELS[s]).join(', ')}.`);
+        this.activeTab.set('plan');
+        this.toast.error(`Complete the highlighted section(s): ${invalid.map(s => PLAN_SECTION_LABELS[s]).join(', ')}.`);
+        setTimeout(() => document.getElementById(`mp-section-${invalid[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
         return;
       }
     }
@@ -271,6 +265,7 @@ export class ProjectForm {
       sponsor: v.sponsor as PartyDetails,
       cro: v.cro as PartyDetails,
       scope: { ...v.scope, visits: v.scope.visits.map(x => ({ visitType: x.visitType, days: Number(x.days) })) },
+      protocolDocument: this.isDetails() && !this.planLockReason() ? this.planForm.form.controls.details.controls.protocolDocument.value : v.protocolDocument,
     };
     try {
       const id = this.id();

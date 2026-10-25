@@ -7,6 +7,7 @@ import { EmailService } from '../../../core/services/email.service';
 import { MonitorAssignmentService } from '../../../core/services/monitor-assignment.service';
 import { MonitoringPlanService } from '../../../core/services/monitoring-plan.service';
 import { MonitoringReportService } from '../../../core/services/monitoring-report.service';
+import { ProjectReadinessService } from '../../../core/services/project-readiness.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UserDirectoryService } from '../../../core/services/user-directory.service';
@@ -30,12 +31,14 @@ export class AssignmentDetail {
   protected readonly plans = inject(MonitoringPlanService);
   protected readonly reports = inject(MonitoringReportService);
   protected readonly users = inject(UserDirectoryService);
+  private readonly readiness = inject(ProjectReadinessService);
 
   readonly id = input.required<string>();
   protected readonly assignment = computed(() => this.assignments.getVisible(this.id()));
   protected readonly actions = computed(() =>
     this.assignment() ? this.assignments.actions(this.assignment()!) : { edit: false, delete: false, notify: false, acknowledge: false, startReport: false },
   );
+  protected readonly reportBlockReason = computed(() => this.readiness.assignBlockReason(this.assignment()?.projectId));
   protected readonly history = computed(() => [...(this.assignment()?.history ?? [])].reverse().map(h => ({ at: h.at, title: h.text, subtitle: h.byName })));
 
   async notify(a: MonitorAssignment): Promise<void> {

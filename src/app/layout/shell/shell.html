@@ -1,4 +1,4 @@
-<div class="flex h-dvh text-ink">
+<div class="relative flex h-dvh overflow-hidden text-ink print:overflow-visible">
   <div class="zn-no-print hidden lg:block">
     <app-sidebar [collapsed]="collapsed()" (toggle)="collapsed.set(!collapsed())" />
   </div>
@@ -19,7 +19,7 @@
         <svg lucideIcon="triangle-alert" [size]="14" /> Browser storage is unavailable. Changes will be lost when you refresh this page.
       </p>
     }
-    <main class="flex-1 overflow-auto p-3 md:p-5" id="main">
+    <main class="relative flex-1 overflow-auto p-3 md:p-5" id="main">
       <div class="mx-auto flex min-h-full max-w-[96rem] flex-col">
         <router-outlet />
       </div>

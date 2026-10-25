@@ -128,14 +128,21 @@
       <app-data-table [columns]="delegationColumns" [rows]="relatedDelegations()" emptyMessage="No delegation records for this project." />
     }
     @case ('assignments') {
-      <div class="mb-3 flex justify-end">
+      <div class="mb-3 flex items-center justify-end gap-3">
         @if (roles.can('assignment.manage')) {
-          <a routerLink="/assignments/new" [queryParams]="{ projectId: p.id }" class="zn-btn zn-btn-primary zn-btn-sm"><svg lucideIcon="plus" [size]="14" /> Assign Monitor</a>
+          @if (assignmentBlockReason(); as reason) {
+            <span class="text-xs text-ink-soft">{{ reason }}</span>
+          } @else {
+            <a routerLink="/assignments/new" [queryParams]="{ projectId: p.id }" class="zn-btn zn-btn-primary zn-btn-sm"><svg lucideIcon="plus" [size]="14" /> Assign Monitor</a>
+          }
         }
       </div>
       <app-data-table [columns]="assignmentColumns" [rows]="relatedAssignments()" emptyMessage="No monitor assignments for this project." />
     }
     @case ('reports') {
+      @if (assignmentBlockReason(); as reason) {
+        <p class="mb-3 text-right text-xs text-ink-soft">{{ reason }}</p>
+      }
       <app-data-table [columns]="reportColumns" [rows]="relatedReports()" emptyMessage="No monitoring reports for this project." />
     }
     @case ('activity') {

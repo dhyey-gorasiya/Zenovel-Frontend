@@ -19,6 +19,9 @@
         <app-form-field class="md:col-span-2" label="Project" [control]="form.controls.projectId" [required]="true">
           <app-searchable-select formControlName="projectId" [options]="projectOptions()" placeholder="Select a project" />
         </app-form-field>
+        @if (blockReason()) {
+          <p class="zn-notice zn-notice-danger md:col-span-2" role="alert"><svg lucideIcon="lock" [size]="16" class="mt-0.5 shrink-0" /> {{ blockReason() }}</p>
+        }
         <app-form-field label="Type of Monitoring Visit" [control]="form.controls.visitTypeChoice" [required]="true" for="a-visit">
           <select id="a-visit" class="zn-input" formControlName="visitTypeChoice">
             <option value="">Select…</option>
@@ -57,7 +60,7 @@
       </div>
       <div class="flex justify-end gap-2 border-t border-line pt-3">
         <button type="button" class="zn-btn zn-btn-ghost" (click)="cancel()">Cancel</button>
-        <button type="submit" class="zn-btn zn-btn-primary"><svg lucideIcon="save" [size]="16" /> {{ existing() ? 'Save changes' : 'Create assignment' }}</button>
+        <button type="submit" class="zn-btn zn-btn-primary" [disabled]="!!blockReason()"><svg lucideIcon="save" [size]="16" /> {{ existing() ? 'Save changes' : 'Create assignment' }}</button>
       </div>
     </form>
 

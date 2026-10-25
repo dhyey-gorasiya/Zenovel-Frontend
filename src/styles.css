@@ -385,7 +385,9 @@
     border-radius: 0.75rem;
   }
 
+  /* `relative` keeps absolutely positioned cell content (e.g. sr-only headers) inside the scroll box. */
   .zn-table-scroll {
+    position: relative;
     overflow: auto;
   }
 

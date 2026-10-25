@@ -11,6 +11,7 @@ import { FormDraftService } from '../../../core/services/form-draft.service';
 import { AssignmentInput, MonitorAssignmentService } from '../../../core/services/monitor-assignment.service';
 import { MonitoringPlanService } from '../../../core/services/monitoring-plan.service';
 import { MonitoringReportService } from '../../../core/services/monitoring-report.service';
+import { ProjectReadinessService } from '../../../core/services/project-readiness.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UserDirectoryService } from '../../../core/services/user-directory.service';
@@ -42,6 +43,7 @@ export class AssignmentForm {
   protected readonly delegations = inject(DelegationService);
   protected readonly reports = inject(MonitoringReportService);
   protected readonly users = inject(UserDirectoryService);
+  private readonly readiness = inject(ProjectReadinessService);
 
   readonly id = input<string>();
   readonly projectId = input<string>();
@@ -70,7 +72,14 @@ export class AssignmentForm {
     this.value();
     return this.projects.get(this.form.controls.projectId.value);
   });
-  protected readonly projectOptions = computed(() => this.projects.visible().map(p => ({ value: p.id, label: `${p.name} (${p.id})`, hint: p.protocolNo })));
+  protected readonly projectOptions = computed(() =>
+    this.projects.visible().map(p => {
+      const lock = p.id === this.existing()?.projectId ? '' : this.readiness.assignLockHint(p.id);
+      return { value: p.id, label: `${p.name} (${p.id})`, hint: lock ? `${p.protocolNo} · ${lock}` : p.protocolNo, disabled: !!lock };
+    }),
+  );
+  /** Why a new assignment cannot be created for the selected project; empty when allowed or when editing. */
+  protected readonly blockReason = computed(() => (this.existing() || !this.project() ? '' : this.readiness.assignBlockReason(this.project()!.id)));
   protected readonly relatedPlans = computed(() => (this.project() ? this.plans.forProject(this.project()!.id) : []));
   protected readonly relatedDelegations = computed(() => (this.project() ? this.delegations.forProject(this.project()!.id) : []));
   protected readonly relatedAssignments = computed(() => (this.project() ? this.assignments.forProject(this.project()!.id).filter(a => a.id !== this.id()) : []));
@@ -113,7 +122,7 @@ export class AssignmentForm {
       }
       this.existing.set(a);
       this.load(a);
-    } else if (this.projectId() && this.projects.getVisible(this.projectId())) {
+    } else if (this.projectId() && this.projects.getVisible(this.projectId()) && this.readiness.canAssign(this.projectId())) {
       this.form.controls.projectId.setValue(this.projectId()!);
     }
     const draft = this.drafts.restore<ReturnType<typeof this.form.getRawValue>>(this.draftKey);
@@ -158,6 +167,10 @@ export class AssignmentForm {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
       this.toast.error('Please complete the required fields.');
+      return;
+    }
+    if (this.blockReason()) {
+      this.toast.error(this.blockReason());
       return;
     }
     const v = this.form.getRawValue();

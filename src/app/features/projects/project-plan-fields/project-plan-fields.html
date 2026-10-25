@@ -4,9 +4,8 @@
 @let r = m.form.controls.reporting.controls;
 @let p = project();
 
-@switch (section()) {
-  @case ('plan') {
-    <section class="zn-surface overflow-hidden">
+<div class="space-y-4">
+    <section id="mp-section-plan" class="zn-surface overflow-hidden">
       <div class="zn-card-head">
         <h2 class="zn-section-title">Monitoring Plan Preparation</h2>
         <span class="text-xs text-ink-soft">Rows marked <span class="zn-badge zn-badge-muted">Fetched</span> come from the project record.</span>
@@ -205,14 +204,14 @@
               <th scope="row">Monitoring Plan Template Upload</th>
               <td>
                 <app-file-upload [formControl]="r.templateDocument" label="Upload plan template" accept=".doc,.docx,.pdf" />
-                <p class="mt-1 text-xs text-ink-soft">Metadata only (prototype).</p>
+                <p class="mt-1 text-xs text-ink-soft">Kept in this browser for preview only (prototype).</p>
               </td>
             </tr>
             <tr>
               <th scope="row">Protocol Upload</th>
               <td>
                 <app-file-upload [formControl]="d.protocolDocument" label="Upload protocol" />
-                <p class="mt-1 text-xs text-ink-soft">Metadata only. The simulated AI does not read this file.</p>
+                <p class="mt-1 text-xs text-ink-soft">Kept in this browser for preview only, and also shown as the project's protocol document. The simulated AI does not read this file.</p>
               </td>
             </tr>
 
@@ -244,10 +243,8 @@
         </table>
       </div>
     </section>
-  }
 
-  @case ('risk') {
-    <section class="zn-surface space-y-3 p-4 md:p-5">
+    <section id="mp-section-risk" class="zn-surface space-y-3 p-4 md:p-5">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 class="zn-section-title">Risk assessment</h2>
@@ -330,10 +327,8 @@
         </table>
       </div>
     </section>
-  }
 
-  @case ('summary') {
-    <section class="zn-surface space-y-3 p-4 md:p-5">
+    <section id="mp-section-summary" class="zn-surface space-y-3 p-4 md:p-5">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 class="zn-section-title">Protocol summary</h2>
@@ -378,5 +373,4 @@
         </table>
       </div>
     </section>
-  }
-}
+</div>

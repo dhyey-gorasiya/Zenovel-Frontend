@@ -1,0 +1,27 @@
+@let f = file();
+<app-modal [title]="f.name" [subtitle]="(f.size / 1024 | number: '1.0-0') + ' KB · added ' + f.uploadedAt.slice(0, 10)"
+  width="min(64rem, 100%)" (closed)="closed.emit()">
+  @if (loading()) {
+    <p class="flex items-center gap-2 text-sm text-ink-soft"><svg lucideIcon="loader-circle" [size]="16" class="animate-spin" /> Loading document…</p>
+  } @else if (!url()) {
+    <div class="zn-notice zn-notice-info">
+      <svg lucideIcon="info" [size]="16" class="mt-0.5 shrink-0" />
+      <span>The contents of this file are not available in this browser (only its details were saved). Remove it and upload it again to preview it.</span>
+    </div>
+  } @else if (kind() === 'pdf') {
+    <iframe class="h-[70dvh] w-full rounded-lg border border-line" [src]="safeUrl()" [title]="f.name"></iframe>
+  } @else if (kind() === 'image') {
+    <img class="mx-auto max-h-[70dvh] rounded-lg border border-line" [src]="url()" [alt]="f.name" />
+  } @else {
+    <div class="zn-notice zn-notice-info">
+      <svg lucideIcon="info" [size]="16" class="mt-0.5 shrink-0" />
+      <span>Preview is available for PDF and image files only. This file type can't be shown in the browser.</span>
+    </div>
+  }
+  <ng-container modal-actions>
+    @if (url() && kind() !== 'other') {
+      <a class="zn-btn zn-btn-ghost" [href]="viewerUrl()" target="_blank" rel="noopener"><svg lucideIcon="external-link" [size]="16" /> Open in new tab</a>
+    }
+    <button type="button" class="zn-btn zn-btn-primary" (click)="closed.emit()">Close</button>
+  </ng-container>
+</app-modal>

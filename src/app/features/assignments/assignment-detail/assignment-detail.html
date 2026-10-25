@@ -59,6 +59,8 @@
           <a [routerLink]="['/reports', a.reportId]" class="zn-btn zn-btn-ghost w-full"><svg lucideIcon="file-text" [size]="16" /> Open linked monitoring report</a>
         } @else if (actions().startReport) {
           <a routerLink="/reports/new" [queryParams]="{ assignmentId: a.id }" class="zn-btn zn-btn-primary w-full"><svg lucideIcon="file-pen" [size]="16" /> Start monitoring report</a>
+        } @else if (reportBlockReason(); as reason) {
+          <p class="text-xs text-ink-soft">No report linked yet. {{ reason }}</p>
         } @else {
           <p class="text-xs text-ink-soft">No report linked yet. The assigned monitor can start the report from this page.</p>
         }

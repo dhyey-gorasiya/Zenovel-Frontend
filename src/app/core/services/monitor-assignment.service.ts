@@ -6,6 +6,7 @@ import { DataStore } from '../data/data-store.service';
 import { EmailDraft, MonitorAssignment } from '../models';
 import { ActivityService } from './activity.service';
 import { NotificationService } from './notification.service';
+import { ProjectReadinessService } from './project-readiness.service';
 import { UserDirectoryService } from './user-directory.service';
 
 export type AssignmentInput = Pick<MonitorAssignment, 'projectId' | 'visitType' | 'monitorId' | 'visitDate' | 'planId' | 'reportId' | 'notes' | 'status'>;
@@ -27,6 +28,7 @@ export class MonitorAssignmentService {
   private readonly activity = inject(ActivityService);
   private readonly notifications = inject(NotificationService);
   private readonly users = inject(UserDirectoryService);
+  private readonly readiness = inject(ProjectReadinessService);
 
   readonly visible = computed(() => this.data.assignments.items().filter(a => this.scope.assignment(a)));
 
@@ -56,11 +58,13 @@ export class MonitorAssignmentService {
       delete: manage,
       notify: manage && open,
       acknowledge: this.roles.can('assignment.acknowledge') && (a.status === 'Planned' || a.status === 'Notified') && (manage || a.monitorId === me),
-      startReport: this.roles.can('report.prepare') && a.monitorId === me && !a.reportId && a.status !== 'Cancelled',
+      startReport: this.roles.can('report.prepare') && a.monitorId === me && !a.reportId && a.status !== 'Cancelled' && this.readiness.canAssign(a.projectId),
     };
   }
 
   create(input: AssignmentInput): MonitorAssignment {
+    const blocked = this.readiness.assignBlockReason(input.projectId);
+    if (blocked) throw new Error(blocked);
     const now = new Date().toISOString();
     const a = this.data.assignments.insert({
       ...input,

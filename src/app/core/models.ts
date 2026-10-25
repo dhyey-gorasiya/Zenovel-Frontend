@@ -24,6 +24,8 @@ export interface FileMeta {
   size: number;
   type: string;
   uploadedAt: string;
+  /** Key of the stored file contents (`FileContentStore`); absent when only metadata was kept. */
+  contentId?: string;
 }
 
 export interface SimSignature {

@@ -20,7 +20,7 @@
 }
 
 @if (isDetails()) {
-<app-tabs [tabs]="tabs()" [(active)]="activeTab" />
+<app-tabs [tabs]="tabs" [(active)]="activeTab" />
 }
 
 <form [formGroup]="form" (ngSubmit)="save()" novalidate class="flex flex-1 flex-col space-y-4">
@@ -40,7 +40,7 @@
   <div class="zn-notice zn-notice-info"><svg lucideIcon="lock" [size]="16" class="mt-0.5 shrink-0" /> {{ planLockReason() }}
   </div>
   }
-  <app-project-plan-fields [model]="planForm" [section]="planSection()" [project]="existing()!"
+  <app-project-plan-fields [model]="planForm" [project]="existing()!"
     [locked]="!!planLockReason()" [attemptedSubmit]="attemptedPlanSubmit()" />
   } @else {
   @if (isDetails()) {
@@ -83,17 +83,11 @@
       </app-form-field>
     </div>
     <div class="mt-3 grid gap-3 lg:grid-cols-2">
-      <div class="space-y-3">
-        <app-form-field label="Description" [control]="form.controls.description" for="p-desc">
-          <textarea id="p-desc" class="zn-input" rows="3" formControlName="description"></textarea>
-        </app-form-field>
-        <app-form-field label="Notes" [control]="form.controls.notes" for="p-notes">
-          <textarea id="p-notes" class="zn-input" rows="3" formControlName="notes"></textarea>
-        </app-form-field>
-      </div>
-      <app-form-field label="Protocol document"
-        hint="Prototype stores file name and size only — the file itself is not uploaded.">
-        <app-file-upload formControlName="protocolDocument" label="Upload protocol (PDF/DOC)" />
+      <app-form-field label="Description" [control]="form.controls.description" for="p-desc">
+        <textarea id="p-desc" class="zn-input" rows="3" formControlName="description"></textarea>
+      </app-form-field>
+      <app-form-field label="Notes" [control]="form.controls.notes" for="p-notes">
+        <textarea id="p-notes" class="zn-input" rows="3" formControlName="notes"></textarea>
       </app-form-field>
     </div>
   </section>

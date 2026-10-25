@@ -9,6 +9,7 @@ import { Attendee, DelegatedMonitor, Delegation, MonitorDuty, SessionUser } from
 import { DelegationInput, DelegationService } from '../../../core/services/delegation.service';
 import { FormDraftService } from '../../../core/services/form-draft.service';
 import { MonitoringPlanService } from '../../../core/services/monitoring-plan.service';
+import { ProjectReadinessService } from '../../../core/services/project-readiness.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UserDirectoryService } from '../../../core/services/user-directory.service';
@@ -47,6 +48,7 @@ export class DelegationForm {
   protected readonly projects = inject(ProjectService);
   protected readonly plans = inject(MonitoringPlanService);
   protected readonly users = inject(UserDirectoryService);
+  private readonly readiness = inject(ProjectReadinessService);
 
   readonly id = input<string>();
   readonly projectId = input<string>();
@@ -89,7 +91,12 @@ export class DelegationForm {
     return this.plans.get(this.form.controls.planId.value);
   });
   protected readonly duties = computed(() => (this.project() ? this.delegations.dutiesFor(this.project()!.blinding) : []));
-  protected readonly projectOptions = computed(() => this.projects.visible().map(p => ({ value: p.id, label: `${p.name} (${p.id})`, hint: `${p.protocolNo} · ${p.blinding}` })));
+  protected readonly projectOptions = computed(() =>
+    this.projects.visible().map(p => {
+      const lock = p.id === this.existing()?.projectId ? '' : this.readiness.delegateLockHint(p.id);
+      return { value: p.id, label: `${p.name} (${p.id})`, hint: `${p.protocolNo} · ${lock || p.blinding}`, disabled: !!lock };
+    }),
+  );
   protected readonly planOptions = computed(() => {
     const p = this.project();
     if (!p) return [];
@@ -137,7 +144,7 @@ export class DelegationForm {
       this.existing.set(d);
       this.load(d);
     } else {
-      const pid = this.projectId() && this.projects.getVisible(this.projectId()) ? this.projectId()! : '';
+      const pid = this.projectId() && this.projects.getVisible(this.projectId()) && this.readiness.canDelegate(this.projectId()) ? this.projectId()! : '';
       this.form.controls.projectId.setValue(pid);
       if (pid) this.onProject(pid);
       const planId = this.planId();

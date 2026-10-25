@@ -10,9 +10,9 @@ import { FileUpload } from '../../../shared/ui/file-upload';
 import { errorMessage } from '../../../shared/ui/form-field';
 import { StatusBadge } from '../../../shared/ui/status-badge';
 import { PlanAiPanel } from '../../plans/plan-ai-panel/plan-ai-panel';
-import { PlanFormModel, PlanSection } from '../../plans/plan-form.model';
+import { PlanFormModel } from '../../plans/plan-form.model';
 
-/** Monitoring Plan sections of the project form, laid out like the plan preparation template sheet. */
+/** Monitoring Plan tab of the project form: the plan preparation template sheet followed by the AI-assisted risk assessment and protocol summary. */
 @Component({
   selector: 'app-project-plan-fields',
   imports: [ReactiveFormsModule, Icon, DatePicker, FileUpload, StatusBadge, PlanAiPanel],
@@ -24,7 +24,6 @@ export class ProjectPlanFields {
   protected readonly plans = inject(MonitoringPlanService);
 
   readonly model = input.required<PlanFormModel>();
-  readonly section = input.required<PlanSection>();
   readonly project = input.required<Project>();
   /** Hides add/remove/AI controls while the plan cannot be edited. */
   readonly locked = input(false);

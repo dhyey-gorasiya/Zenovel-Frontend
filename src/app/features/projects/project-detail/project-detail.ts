@@ -8,6 +8,7 @@ import { DelegationService } from '../../../core/services/delegation.service';
 import { MonitorAssignmentService } from '../../../core/services/monitor-assignment.service';
 import { MonitoringPlanService } from '../../../core/services/monitoring-plan.service';
 import { MonitoringReportService } from '../../../core/services/monitoring-report.service';
+import { ProjectReadinessService } from '../../../core/services/project-readiness.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { UserDirectoryService } from '../../../core/services/user-directory.service';
 import { DataTable } from '../../../shared/data-table/data-table';
@@ -34,6 +35,7 @@ export class ProjectDetail {
   private readonly assignments = inject(MonitorAssignmentService);
   private readonly reports = inject(MonitoringReportService);
   private readonly activity = inject(ActivityService);
+  private readonly readiness = inject(ProjectReadinessService);
   private readonly ui = inject(ProjectUiActions);
   protected readonly users = inject(UserDirectoryService);
   protected readonly roles = inject(DemoRoleService);
@@ -47,6 +49,7 @@ export class ProjectDetail {
   protected readonly plan = computed(() => this.plans.planFor(this.id()));
   protected readonly relatedDelegations = computed(() => this.delegations.forProject(this.id()));
   protected readonly delegationUnlocked = computed(() => this.plans.approvedForProject(this.id()).length > 0);
+  protected readonly assignmentBlockReason = computed(() => this.readiness.assignBlockReason(this.id()));
   protected readonly relatedAssignments = computed(() => this.assignments.forProject(this.id()));
   protected readonly relatedReports = computed(() => this.reports.forProject(this.id()));
   protected readonly history = computed(() =>

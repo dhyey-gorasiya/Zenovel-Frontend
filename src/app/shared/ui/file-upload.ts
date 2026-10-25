@@ -1,21 +1,25 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, forwardRef, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, forwardRef, inject, input, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { FileMeta } from '../../core/models';
+import { FileContentStore } from '../../core/services/file-content-store.service';
 import { Icon } from '../icons';
+import { DocumentPreview } from './document-preview';
 
 /**
- * Prototype file upload: only file metadata (name, size, type) is stored in the browser.
- * The file contents are not persisted or uploaded anywhere.
+ * Prototype file upload: the form value holds file metadata (name, size, type); the contents are kept
+ * in this browser's IndexedDB for preview only and are not uploaded anywhere.
  */
 @Component({
   selector: 'app-file-upload',
-  imports: [Icon, DecimalPipe],
+  imports: [Icon, DecimalPipe, DocumentPreview],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => FileUpload), multi: true }],
   templateUrl: './file-upload.html',
 })
 export class FileUpload implements ControlValueAccessor {
+  private readonly store = inject(FileContentStore);
+
   readonly label = input('Upload document');
   readonly accept = input('.pdf,.doc,.docx');
   readonly maxMb = input(20);
@@ -24,6 +28,8 @@ export class FileUpload implements ControlValueAccessor {
   protected readonly disabled = signal(false);
   protected readonly dragging = signal(false);
   protected readonly error = signal('');
+  protected readonly saving = signal(false);
+  protected readonly previewing = signal(false);
   private onChange: (v: FileMeta | null) => void = () => {};
   private onTouched: () => void = () => {};
 
@@ -42,22 +48,22 @@ export class FileUpload implements ControlValueAccessor {
 
   onPick(e: Event): void {
     const input = e.target as HTMLInputElement;
-    this.accept_(input.files?.[0]);
+    void this.accept_(input.files?.[0]);
     input.value = '';
   }
 
   onDrop(e: DragEvent): void {
     e.preventDefault();
     this.dragging.set(false);
-    if (!this.disabled()) this.accept_(e.dataTransfer?.files?.[0]);
+    if (!this.disabled()) void this.accept_(e.dataTransfer?.files?.[0]);
   }
 
   clear(): void {
     this.set(null);
   }
 
-  private accept_(file: File | undefined): void {
-    if (!file) return;
+  private async accept_(file: File | undefined): Promise<void> {
+    if (!file || this.saving()) return;
     const allowed = this.accept().split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     const ext = '.' + (file.name.split('.').pop() ?? '').toLowerCase();
     if (allowed.length && !allowed.includes(ext)) {
@@ -68,11 +74,22 @@ export class FileUpload implements ControlValueAccessor {
       this.error.set(`File is larger than ${this.maxMb()} MB.`);
       return;
     }
-    this.set({ name: file.name, size: file.size, type: file.type || 'application/octet-stream', uploadedAt: new Date().toISOString() });
+    const meta: FileMeta = { name: file.name, size: file.size, type: file.type || 'application/octet-stream', uploadedAt: new Date().toISOString() };
+    this.saving.set(true);
+    try {
+      if (this.store.supported) meta.contentId = await this.store.save(file);
+      this.set(meta);
+    } catch {
+      this.set(meta);
+      this.error.set('The file was attached, but its contents could not be stored in this browser, so it cannot be previewed.');
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   private set(v: FileMeta | null): void {
     this.error.set('');
+    this.previewing.set(false);
     this.value.set(v);
     this.onChange(v);
     this.onTouched();
